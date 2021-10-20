@@ -10,6 +10,6 @@ Social networks are nowadays in every moment of our lives. The information built
 In this project, you will implement a model of a social matching service where two clients issue a request for finding their compatibility. This request will be sent to a Central Server which in turn interacts with three other backend servers for pulling information and data processing. The Central server will connect to the Topology server (server T) which has the user social network information. Central server has to connect as well to the Score server (server S) which stores the compatibility scores for each user. Finally, the server will use the network topology and scores to generate a graph that connects both users, and provide the smallest matching gap between them. The procedure to complete this task is provided in phase 2’s description. Both the matching gap and the graph generated will be sent back to both clients. 
 </p>
 
-<center>
+<p align="center">
 <img src="images/Network_Image.png" width="600" height="400"/>
-</center>
+</p>
