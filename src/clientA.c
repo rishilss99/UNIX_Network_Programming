@@ -10,6 +10,8 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 
+#define localhost "127.0.0.1"
+
 int main(){
     printf("ClientA\n");
 }

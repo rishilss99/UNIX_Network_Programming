@@ -10,6 +10,12 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 
+#define localhost "127.0.0.1"
+
+void bootUpMsg(){
+    printf("The Central server is up and running.\n");
+}
+
 int main(){
-    printf("Central\n");
+    bootUpMsg();
 }

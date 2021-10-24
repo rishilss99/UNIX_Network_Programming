@@ -10,6 +10,13 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 
+#define PORT "22499"
+#define localhost "127.0.0.1"
+
+void bootUpMsg(){
+    printf("The ServerS is up and running using UDP on port %s\n",PORT);
+}
+
 int main(){
-    printf("ServerS\n");
+    bootUpMsg();
 }
