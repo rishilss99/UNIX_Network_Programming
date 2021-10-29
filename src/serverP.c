@@ -34,8 +34,6 @@ int main()
     hints.ai_family = AF_INET;       // use IPv4
     hints.ai_socktype = SOCK_DGRAM;  // use datagram sockets
 
-    getaddrinfo(NULL, PORT, &hints, &res);
-
     // error checking for getaddrinfo
 
     if ((status = getaddrinfo(localhost, PORT, &hints, &res)) != 0)
