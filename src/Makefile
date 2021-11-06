@@ -1,5 +1,5 @@
 # the compiler: gcc for C program, define as g++ for C++
-CC = gcc
+CC = g++
 
 all: central.out serverS.out serverT.out serverP.out clientA.out clientB.out
 
