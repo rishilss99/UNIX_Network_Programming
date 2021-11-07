@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){
 
     memset(&hints, 0, sizeof hints); // make sure hints is empty
     hints.ai_family = AF_INET;       // use IPv4
-    hints.ai_socktype = SOCK_DGRAM;  // use datagram sockets
+    hints.ai_socktype = SOCK_STREAM;  // use datagram sockets
 
     // error checking for getaddrinfo
     // getaddrinfo used to get server address
@@ -70,15 +70,17 @@ int main(int argc, char *argv[]){
     else
         printf("The client sent %s to the Central server.\n",argv[1]);
 
-    // -------------------Just for temporary testing-----------------
+    // Upto this point client is setup and it has sent the username to the central server - Phase 1A
     int numbytes;
     char buf[20];
-    if ((numbytes = recv(sockfd, buf, 19, 0)) == -1) {
+    if ((numbytes = recv(sockfd, buf, 19, 0)) == -1)
+    {
         perror("Client B: recv");
         exit(1);
     }
     buf[numbytes] = '\0';
-    printf("Client B: received '%s'\n",buf);
+    printf("Client B: received '%s'\n", buf);
+
     close(sockfd);
 
 }

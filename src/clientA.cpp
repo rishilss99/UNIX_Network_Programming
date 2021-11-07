@@ -11,13 +11,15 @@
 #include <sys/wait.h>
 
 #define localhost "127.0.0.1"
-#define CENTRAL_PORT_A "25499"  //TCP Port to connect to Central Server
+#define CENTRAL_PORT_A "25499" //TCP Port to connect to Central Server
 
-void bootUpMsg(){
+void bootUpMsg()
+{
     printf("The client is up and running.\n");
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[])
+{
     bootUpMsg();
 
     struct addrinfo hints;
@@ -29,7 +31,7 @@ int main(int argc, char *argv[]){
 
     memset(&hints, 0, sizeof hints); // make sure hints is empty
     hints.ai_family = AF_INET;       // use IPv4
-    hints.ai_socktype = SOCK_STREAM;  // use datagram sockets
+    hints.ai_socktype = SOCK_STREAM; // use datagram sockets
 
     // error checking for getaddrinfo
     // getaddrinfo used to get server address
@@ -52,9 +54,9 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-
     // Directly connecting to central server without binding
-    if (connect(sockfd, res->ai_addr, res->ai_addrlen) != 0) {
+    if (connect(sockfd, res->ai_addr, res->ai_addrlen) != 0)
+    {
         close(sockfd);
         perror("Client A: connect");
         exit(1);
@@ -62,25 +64,25 @@ int main(int argc, char *argv[]){
 
     freeaddrinfo(res); // all done with this structure
 
-    // // Established TCP connection, send user A name to Central server
-    // if (send(sockfd, argv[1], strlen(argv[1]), 0) == -1){
-    //     perror("Client A: send");
-    //     exit(1);
-    // }
-    // else
-    //     printf("The client sent %s to the Central server.\n",argv[1]);
+    // Established TCP connection, send user A name to Central server
+    if (send(sockfd, argv[1], strlen(argv[1]), 0) == -1)
+    {
+        perror("Client A: send");
+        exit(1);
+    }
+    else
+        printf("The client sent %s to the Central server.\n", argv[1]);
 
-    // -------------------Just for temporary testing-----------------
+    // Upto this point client is setup and it has sent the username to the central server - Phase 1A
     int numbytes;
     char buf[20];
-    if ((numbytes = recv(sockfd, buf, 19, 0)) == -1) {
+    if ((numbytes = recv(sockfd, buf, 19, 0)) == -1)
+    {
         perror("Client A: recv");
         exit(1);
     }
     buf[numbytes] = '\0';
-    printf("Client A: received '%s'\n",buf);
+    printf("Client A: received '%s'\n", buf);
+
     close(sockfd);
-
-
-
 }
