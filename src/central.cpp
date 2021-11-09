@@ -17,6 +17,7 @@
 #define localhost "127.0.0.1"
 #define TCP_PORT_A "25499"
 #define TCP_PORT_B "26499"
+#define UDP_PORT "24499"
 
 void bootUpMsg()
 {
@@ -24,7 +25,7 @@ void bootUpMsg()
 }
 
 // Socket setup, bind and listen
-int setupSocket(const char *port)
+int setupTCPSocket(const char *port)
 {
     struct addrinfo hints;
     struct addrinfo *res;
@@ -78,10 +79,56 @@ int setupSocket(const char *port)
     return sockfd;
 }
 
-int getPortNumber(int socket_fd){
+int setupUDPSocket(const char *port)
+{
+    struct addrinfo hints;
+    struct addrinfo *res;
+    int sockfd;
+    int status;
+
+    // first, load up address structs with getaddrinfo():
+
+    memset(&hints, 0, sizeof hints); // make sure hints is empty
+    hints.ai_family = AF_INET;       // use IPv4
+    hints.ai_socktype = SOCK_DGRAM;  // use datagram sockets
+
+    // error checking for getaddrinfo
+
+    if ((status = getaddrinfo(localhost, port, &hints, &res)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        exit(1);
+    }
+
+    // make a socket:
+
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+    // error checking for socket creation
+
+    if (sockfd == -1)
+    {
+        perror("ServerT: socket");
+        exit(1);
+    }
+
+    // bind it to the port and IP address we passed in to getaddrinfo():
+
+    if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1)
+    {
+        close(sockfd);
+        perror("ServerT: bind");
+        exit(1);
+    }
+
+    freeaddrinfo(res); // all done with this structure
+}
+
+int getPortNumber(int socket_fd)
+{
     struct sockaddr_in sin;
     socklen_t sinlen = sizeof(sin);
-    getsockname(socket_fd, (struct sockaddr*)&sin, &sinlen);
+    getsockname(socket_fd, (struct sockaddr *)&sin, &sinlen);
     return ntohs(sin.sin_port);
 }
 
@@ -89,8 +136,8 @@ int main()
 {
     bootUpMsg();
 
-    int sockfd_A = setupSocket(TCP_PORT_A);
-    int sockfd_B = setupSocket(TCP_PORT_B);
+    int sockfd_A = setupTCPSocket(TCP_PORT_A);
+    int sockfd_B = setupTCPSocket(TCP_PORT_B);
 
     // Polling for multiple sockets
 
@@ -135,16 +182,16 @@ int main()
                 char buffer[512];
                 if ((numbytes = recv(child_fd, buffer, sizeof buffer, 0)) == -1)
                 {
-                    perror("Server: recv");
+                    perror("Central: recv");
                     exit(1);
                 }
                 buffer[numbytes] = '\0';
-                
+
                 printf("The Central server received input=%s from the client using TCP over port %d\n", buffer, getPortNumber(pfds[i].fd));
 
                 if (send(child_fd, "Hey", 3, 0) == -1)
                 {
-                    perror("Client B: send");
+                    perror("Central: send");
                     exit(1);
                 }
 
