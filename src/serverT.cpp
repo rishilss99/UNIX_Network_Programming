@@ -19,9 +19,11 @@
 #include <queue>
 #include <fstream>
 #include <set>
+#include <algorithm>
 
 #define PORT "21499"
 #define localhost "127.0.0.1"
+#define MAXBUFLEN 512
 
 class Graph
 {
@@ -209,6 +211,16 @@ std::vector<int> EdgeList::FindReachableNodes(std::string node_name)
     return m;
 }
 
+std::set<int> MergeNodesList(std::vector<int> listA, std::vector<int> listB)
+{
+    std::set<int> merge_list;
+    for (int i = 0; i < listA.size(); i++)
+        merge_list.insert(listA[i]);
+    for (int k = 0; k < listB.size(); k++)
+        merge_list.insert(listB[k]);
+    return merge_list;
+}
+
 void bootUpMsg()
 {
     printf("The ServerT is up and running using UDP on port %s\n", PORT);
@@ -269,13 +281,45 @@ int main()
     // network_topology.PrintList();
     // network_topology.DisplayReachableNodes("King");
 
-    // Phase 2: Receive 2 node names from Central Server and Generate: 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes 
+    // Phase 2: Receive 2 node names from Central Server and Generate: 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes
+    char user_name_A[512];
+    char user_name_B[512];
+    struct sockaddr_in cliaddr;
+    socklen_t addr_len = sizeof(cliaddr);
+    int numbytes;
+    while (1)
+    {
+        if ((numbytes = recvfrom(sockfd, user_name_A, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+        user_name_A[numbytes] = '\0';
+        std::string node_A(user_name_A);
+        // printf("Server T User Name A: \"%s\"\n", user_name_A);
 
-    // while (1)
-    // {
-    //     n = recvfrom(sockfd, buf, 1023, 0, (struct sockaddr *)&cliaddr, addr_len);
-    //     buf[n] = '\0';
-    //     printf("Client: \"%s\"\n", buf);
-    // }
+        if ((numbytes = recvfrom(sockfd, user_name_B, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
+        {
+            perror("recvfrom");
+            exit(1);
+        }
+        user_name_B[numbytes] = '\0';
+        std::string node_B(user_name_B);
+        // printf("Server T User Name B: \"%s\"\n", user_name_B);
+
+        printf("The ServerT received a request from Central to get the topology.\n");
+
+        // Server T has received the node names
+
+        // network_topology.DisplayReachableNodes(node_A);
+        // network_topology.DisplayReachableNodes(node_B);
+
+        std::set<int> result = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));
+
+
+        // for (std::set<int>::iterator itr = result.begin(); itr != result.end(); itr++)
+        //     std::cout << *itr << " ";
+        // std::cout << "\n";
+    }
     close(sockfd);
 }
