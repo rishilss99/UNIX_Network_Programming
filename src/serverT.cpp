@@ -31,7 +31,7 @@ public:
     int vertices; // No. of vertices
 
     // Pointer to an array containing adjacency lists
-    std::list<int> *adj;
+    std::vector<int> *adj;
 
     Graph(int); // Constructor
 
@@ -43,7 +43,7 @@ public:
 Graph::Graph(int V)
 {
     this->vertices = V;
-    adj = new std::list<int>[V + 1];
+    adj = new std::vector<int>[V + 1];
 }
 
 void Graph::addEdge(int u, int v)
@@ -78,7 +78,7 @@ std::vector<int> Graph::BFS(int componentNum, int src,
         // Get all adjacent vertices of the dequeued
         // vertex u. If a adjacent has not been visited,
         // then mark it visited nd enqueue it
-        for (std::list<int>::iterator itr = adj[u].begin();
+        for (std::vector<int>::iterator itr = adj[u].begin();
              itr != adj[u].end(); itr++)
         {
             if (!visited[*itr])
@@ -156,6 +156,10 @@ void EdgeList::FormSocialNetwork()
         }
     }
     file.close();
+    // Sort the vector of direct edges for each node
+    for(int i = 0; i<social_network->vertices; i++){
+        std::sort(social_network->adj[i].begin(), social_network->adj[i].end());
+    }
 }
 
 // Display all the Reachable Nodes from a node 'n'
@@ -221,6 +225,58 @@ std::set<int> MergeNodesList(std::vector<int> listA, std::vector<int> listB)
     return merge_list;
 }
 
+int *SetToArray(std::set<int> unique_list)
+{
+    int *arr = new int[unique_list.size()];
+    int i = 0;
+    for (std::set<int>::iterator itr = unique_list.begin(); itr != unique_list.end(); itr++)
+        arr[i++] = *itr;
+    return arr;
+}
+
+int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *nodes_list, int num_nodes)
+{
+    int **adj_matrix = new int*[num_nodes];
+    for(int i = 0; i<num_nodes; i++)
+        adj_matrix[i] = new int[num_nodes];
+    for(int k = 0; k<num_nodes; k++){
+        int node_index = nodes_list[k]; //This is the actual value of the node which is equal to its index in the adjacency list
+        int i = 0;
+        int j = 0;
+        while(j<num_nodes){
+            if(k==j){
+                adj_matrix[k][j] = 1;
+                j++;
+            }
+            else if(i==adjcency_list[node_index].size()){
+                adj_matrix[k][j] = 0;
+                j++;
+            }
+            else if(nodes_list[j]==adjcency_list[node_index][i]){
+                adj_matrix[k][j] = 1;
+                j++;
+                i++;
+            }
+            else if(nodes_list[j]<adjcency_list[node_index][i]){
+                adj_matrix[k][j] = 0;
+                j++;
+            }
+            else
+                i++;
+        }
+    }
+
+     //------------------------------------------Debug Output Code--------------------------------------------------------------
+    for(int m = 0; m<num_nodes; m++){
+        for(int n = 0; n<num_nodes; n++){
+            std::cout<<adj_matrix[m][n]<<" ";
+        }
+        std::cout<<"\n";
+    }
+     //------------------------------------------Debug Output Code--------------------------------------------------------------
+    
+}
+
 void bootUpMsg()
 {
     printf("The ServerT is up and running using UDP on port %s\n", PORT);
@@ -278,7 +334,21 @@ int main()
 
     EdgeList network_topology;
     network_topology.FormSocialNetwork();
-    // network_topology.PrintList();
+
+
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
+    for(int i = 0; i<network_topology.social_network->vertices; i++){
+        std::cout<<i<<":"<<" ";
+        for(std::vector<int>::iterator itr = network_topology.social_network->adj[i].begin(); itr!= network_topology.social_network->adj[i].end(); itr++)
+            std::cout<<*itr<<" ";
+        std::cout<<"\n";
+    }
+    network_topology.PrintList();
+     //------------------------------------------Debug Output Code--------------------------------------------------------------
+    
+    
+    
     // network_topology.DisplayReachableNodes("King");
 
     // Phase 2: Receive 2 node names from Central Server and Generate: 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes
@@ -314,12 +384,21 @@ int main()
         // network_topology.DisplayReachableNodes(node_A);
         // network_topology.DisplayReachableNodes(node_B);
 
-        std::set<int> result = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));
-
+        // nodes_set is a merged list of all related vertices/nodes
+        std::set<int> nodes_set = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));  
 
         // for (std::set<int>::iterator itr = result.begin(); itr != result.end(); itr++)
         //     std::cout << *itr << " ";
         // std::cout << "\n";
+
+        //num_nodes is the total number of related vertices/nodes
+        int num_nodes = nodes_set.size();
+
+        //nodes_list is the array of nodes converted from the set that is to be sent to the central server
+        int *nodes_list = SetToArray(nodes_set);
+
+        //adjacency_matrix is the matrix of all the reachable nodes directly forwarded by the central server to server P
+        int **adjacency_matrix = AdjacencyListToMatrix(network_topology.social_network->adj, nodes_list, num_nodes);
     }
     close(sockfd);
 }
