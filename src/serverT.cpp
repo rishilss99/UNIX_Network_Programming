@@ -157,7 +157,8 @@ void EdgeList::FormSocialNetwork()
     }
     file.close();
     // Sort the vector of direct edges for each node
-    for(int i = 0; i<social_network->vertices; i++){
+    for (int i = 0; i < social_network->vertices; i++)
+    {
         std::sort(social_network->adj[i].begin(), social_network->adj[i].end());
     }
 }
@@ -236,28 +237,34 @@ int *SetToArray(std::set<int> unique_list)
 
 int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *nodes_list, int num_nodes)
 {
-    int **adj_matrix = new int*[num_nodes];
-    for(int i = 0; i<num_nodes; i++)
+    int **adj_matrix = new int *[num_nodes];
+    for (int i = 0; i < num_nodes; i++)
         adj_matrix[i] = new int[num_nodes];
-    for(int k = 0; k<num_nodes; k++){
+    for (int k = 0; k < num_nodes; k++)
+    {
         int node_index = nodes_list[k]; //This is the actual value of the node which is equal to its index in the adjacency list
         int i = 0;
         int j = 0;
-        while(j<num_nodes){
-            if(k==j){
+        while (j < num_nodes)
+        {
+            if (k == j)
+            {
                 adj_matrix[k][j] = 1;
                 j++;
             }
-            else if(i==adjcency_list[node_index].size()){
+            else if (i == adjcency_list[node_index].size())
+            {
                 adj_matrix[k][j] = 0;
                 j++;
             }
-            else if(nodes_list[j]==adjcency_list[node_index][i]){
+            else if (nodes_list[j] == adjcency_list[node_index][i])
+            {
                 adj_matrix[k][j] = 1;
                 j++;
                 i++;
             }
-            else if(nodes_list[j]<adjcency_list[node_index][i]){
+            else if (nodes_list[j] < adjcency_list[node_index][i])
+            {
                 adj_matrix[k][j] = 0;
                 j++;
             }
@@ -266,15 +273,18 @@ int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *nodes_list, in
         }
     }
 
-     //------------------------------------------Debug Output Code--------------------------------------------------------------
-    for(int m = 0; m<num_nodes; m++){
-        for(int n = 0; n<num_nodes; n++){
-            std::cout<<adj_matrix[m][n]<<" ";
-        }
-        std::cout<<"\n";
-    }
-     //------------------------------------------Debug Output Code--------------------------------------------------------------
-    
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+    // for (int m = 0; m < num_nodes; m++)
+    // {
+    //     for (int n = 0; n < num_nodes; n++)
+    //     {
+    //         std::cout << adj_matrix[m][n] << " ";
+    //     }
+    //     std::cout << "\n";
+    // }
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
+    return adj_matrix;
 }
 
 void bootUpMsg()
@@ -335,20 +345,19 @@ int main()
     EdgeList network_topology;
     network_topology.FormSocialNetwork();
 
-
     //------------------------------------------Debug Output Code--------------------------------------------------------------
 
-    for(int i = 0; i<network_topology.social_network->vertices; i++){
-        std::cout<<i<<":"<<" ";
-        for(std::vector<int>::iterator itr = network_topology.social_network->adj[i].begin(); itr!= network_topology.social_network->adj[i].end(); itr++)
-            std::cout<<*itr<<" ";
-        std::cout<<"\n";
-    }
-    network_topology.PrintList();
-     //------------------------------------------Debug Output Code--------------------------------------------------------------
-    
-    
-    
+    // for (int i = 0; i < network_topology.social_network->vertices; i++)
+    // {
+    //     std::cout << i << ":"
+    //               << " ";
+    //     for (std::vector<int>::iterator itr = network_topology.social_network->adj[i].begin(); itr != network_topology.social_network->adj[i].end(); itr++)
+    //         std::cout << *itr << " ";
+    //     std::cout << "\n";
+    // }
+    // network_topology.PrintList();
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
     // network_topology.DisplayReachableNodes("King");
 
     // Phase 2: Receive 2 node names from Central Server and Generate: 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes
@@ -361,7 +370,7 @@ int main()
     {
         if ((numbytes = recvfrom(sockfd, user_name_A, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
-            perror("recvfrom");
+            perror("ServerT: recvfrom");
             exit(1);
         }
         user_name_A[numbytes] = '\0';
@@ -370,7 +379,7 @@ int main()
 
         if ((numbytes = recvfrom(sockfd, user_name_B, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
-            perror("recvfrom");
+            perror("ServerT: recvfrom");
             exit(1);
         }
         user_name_B[numbytes] = '\0';
@@ -385,20 +394,39 @@ int main()
         // network_topology.DisplayReachableNodes(node_B);
 
         // nodes_set is a merged list of all related vertices/nodes
-        std::set<int> nodes_set = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));  
-
-        // for (std::set<int>::iterator itr = result.begin(); itr != result.end(); itr++)
-        //     std::cout << *itr << " ";
-        // std::cout << "\n";
+        std::set<int> nodes_set = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));
 
         //num_nodes is the total number of related vertices/nodes
-        int num_nodes = nodes_set.size();
+        int nodes_list_size = nodes_set.size();
+
+        int *num_nodes = new int(nodes_list_size);
+
+        if ((numbytes = sendto(sockfd, num_nodes, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+        {
+            perror("ServerT: Central sendto num nodes");
+            exit(1);
+        }
 
         //nodes_list is the array of nodes converted from the set that is to be sent to the central server
         int *nodes_list = SetToArray(nodes_set);
 
-        //adjacency_matrix is the matrix of all the reachable nodes directly forwarded by the central server to server P
-        int **adjacency_matrix = AdjacencyListToMatrix(network_topology.social_network->adj, nodes_list, num_nodes);
+        if ((numbytes = sendto(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+        {
+            perror("ServerT: Central sendto nodes list");
+            exit(1);
+        }
+
+        // //adjacency_matrix is the matrix of all the reachable nodes directly forwarded by the central server to server P
+        int **adjacency_matrix = AdjacencyListToMatrix(network_topology.social_network->adj, nodes_list, nodes_list_size);
+
+        for (int i = 0; i < nodes_list_size; i++)
+        {
+            if ((numbytes = sendto(sockfd, adjacency_matrix[i], nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+            {
+                perror("ServerT: Central sendto adjacency matrix");
+                exit(1);
+            }
+        }
     }
     close(sockfd);
 }

@@ -135,7 +135,7 @@ int getPortNumber(int socket_fd)
     return ntohs(sin.sin_port);
 }
 
-void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[])
+void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int *&num_nodes_ptr, int *&nodes_list_ptr, int **&adjacency_matrix_ptr)
 {
 
     struct addrinfo hints;
@@ -178,13 +178,57 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[])
 
     printf("The Central server sent a request to Backend-Server T.\n");
 
+    int *num_nodes = new int(0);
+
+    if ((numbytes = recvfrom(sockfd, num_nodes, sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: Server T recvfrom num nodes");
+        exit(1);
+    }
+
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+    // printf("%d\n",*num_nodes);
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
+    int nodes_list_size = *num_nodes;
+    int *nodes_list = new int[nodes_list_size];
+
+    if ((numbytes = recvfrom(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: Server T recvfrom nodes list");
+        exit(1);
+    }
+
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+    // for(int i = 0; i<nodes_list_size; i++)
+    //     printf("%d ",nodes_list[i]);
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
+    int **adjacency_matrix = new int *[nodes_list_size];
+
+    for (int i = 0; i < nodes_list_size; i++)
+    {
+        adjacency_matrix[i] = new int[nodes_list_size];
+        if ((numbytes = recvfrom(sockfd, adjacency_matrix[i], nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: Server T recvfrom adjacency matrix");
+            exit(1);
+        }
+
+        //------------------------------------------Debug Output Code--------------------------------------------------------------
+        // for (int k = 0; k < nodes_list_size; k++)
+        //     printf("%d ", adj_matrix[i][k]);
+        // printf("\n");
+        //------------------------------------------Debug Output Code--------------------------------------------------------------
+    }
+
+    // Transferring the data reference to the pointers from main
+
+    num_nodes_ptr = num_nodes;
+    nodes_list_ptr = nodes_list;
+    adjacency_matrix_ptr = adjacency_matrix;
+
     freeaddrinfo(servinfo);
-    // if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN - 1, 0,
-    //                          servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
-    // {
-    //     perror("Central: Server T recvfrom");
-    //     exit(1);
-    // }
 }
 
 int main()
@@ -238,7 +282,23 @@ int main()
 
         // Done till this portion - Central server receiver usernames from both clients
 
-        getTopologyServerT(sockfd_udp, user_name_A, user_name_B);
+        int *num_nodes;
+        int *nodes_list;
+        int **adjacency_matrix;
+
+        getTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix);
+
+        // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
+
+
+        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        for (int i = 0; i < *num_nodes; i++){
+            for(int k = 0; k < *num_nodes; k++){
+                printf("%d ",adjacency_matrix[i][k]);
+            }
+            printf("\n");
+        }
+        // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
         if (send(child_fd_A, "HeyA", 4, 0) == -1)
         {
