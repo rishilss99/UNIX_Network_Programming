@@ -56,10 +56,11 @@ ScoreList::ScoreList(const char *scorepath = "scores.txt") : file_path(scorepath
     file.close();
 }
 
-int *MatchingScores(std::vector<int> &scores_vec, int *nodes_list, int num_nodes)
+int *MatchingScores(std::vector<int> &scores_vec, int *&nodes_list, int num_nodes)
 {
     int *scores_list = new int[num_nodes];
-    for(int i = 0; i<num_nodes; i++){
+    for (int i = 0; i < num_nodes; i++)
+    {
         scores_list[i] = scores_vec[nodes_list[i]];
     }
     return scores_list;

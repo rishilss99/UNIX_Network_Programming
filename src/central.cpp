@@ -262,7 +262,7 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
 
     if ((numbytes = sendto(sockfd, num_nodes_ptr, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Central ServerS num nodes");
+        perror("Central: ServerS sendto num nodes");
         exit(1);
     }
 
@@ -270,7 +270,7 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
 
     if ((numbytes = sendto(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: ServerS nodes list");
+        perror("Central: ServerS sendto nodes list");
         exit(1);
     }
 
@@ -280,7 +280,7 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
 
     if ((numbytes = recvfrom(sockfd, scores_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Server S recvfrom nodes list");
+        perror("Central: ServerS recvfrom nodes list");
         exit(1);
     }
 
@@ -292,6 +292,65 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
     // Transferring the data reference to the pointers from main
 
     scores_list_ptr = scores_list;
+
+    freeaddrinfo(servinfo);
+}
+
+void getCompatibilityServerP(int sockfd, int *&num_nodes_ptr, int *&scores_list_ptr, int **&adjacency_matrix_ptr)
+{
+    struct addrinfo hints;
+    struct addrinfo *servinfo;
+    int status;
+    int numbytes;
+
+    // first, load up address structs with getaddrinfo():
+
+    memset(&hints, 0, sizeof hints); // make sure hints is empty
+    hints.ai_family = AF_INET;       // use IPv4
+    hints.ai_socktype = SOCK_DGRAM;  // use datagram sockets
+
+    // error checking for getaddrinfo
+    // getaddrinfo used to get server address
+
+    if ((status = getaddrinfo(localhost, SERVER_P_PORT, &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        exit(1);
+    }
+
+    int *num_nodes = num_nodes_ptr;
+    int *scores_list = scores_list_ptr;
+    int **adjacency_matrix = adjacency_matrix_ptr;
+    int nodes_list_size = *num_nodes;
+
+    // First Send num_nodes
+
+    if ((numbytes = sendto(sockfd, num_nodes_ptr, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: Central ServerP sendto num nodes");
+        exit(1);
+    }
+
+    // Second Send node list
+
+    if ((numbytes = sendto(sockfd, scores_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerP sendto scores list");
+        exit(1);
+    }
+
+    // Third Send adjacency matrix
+
+    for (int i = 0; i < nodes_list_size; i++)
+    {
+        if ((numbytes = sendto(sockfd, adjacency_matrix[i], nodes_list_size * sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: ServerP sendto adjacency matrix");
+            exit(1);
+        }
+    }
+
+    printf("The Central server sent a processing request to Backend-Server P.\n");
 
     freeaddrinfo(servinfo);
 }
@@ -382,6 +441,8 @@ int main()
         // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
         printf("The Central server received information from Backend-Server S using UDP over port %d.\n", getPortNumber(sockfd_udp));
+
+        getCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix);
 
         if (send(child_fd_A, "HeyA", 4, 0) == -1)
         {
