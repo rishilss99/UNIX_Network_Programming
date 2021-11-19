@@ -231,6 +231,71 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
     freeaddrinfo(servinfo);
 }
 
+void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int *&scores_list_ptr)
+{
+
+    struct addrinfo hints;
+    struct addrinfo *servinfo;
+    int status;
+    int numbytes;
+
+    // first, load up address structs with getaddrinfo():
+
+    memset(&hints, 0, sizeof hints); // make sure hints is empty
+    hints.ai_family = AF_INET;       // use IPv4
+    hints.ai_socktype = SOCK_DGRAM;  // use datagram sockets
+
+    // error checking for getaddrinfo
+    // getaddrinfo used to get server address
+
+    if ((status = getaddrinfo(localhost, SERVER_S_PORT, &hints, &servinfo)) != 0)
+    {
+        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        exit(1);
+    }
+
+    int *num_nodes = num_nodes_ptr;
+    int *nodes_list = nodes_list_ptr;
+    int nodes_list_size = *num_nodes;
+
+    // First Send num_nodes
+
+    if ((numbytes = sendto(sockfd, num_nodes_ptr, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: Central ServerS num nodes");
+        exit(1);
+    }
+
+    // Second Send node list
+
+    if ((numbytes = sendto(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerS nodes list");
+        exit(1);
+    }
+
+    printf("The Central server sent a request to Backend-Server S.\n");
+
+    int *scores_list = new int[nodes_list_size];
+
+    if ((numbytes = recvfrom(sockfd, scores_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: Server S recvfrom nodes list");
+        exit(1);
+    }
+
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+    // for(int i = 0; i<nodes_list_size; i++)
+    //     printf("%d ",nodes_list[i]);
+    //------------------------------------------Debug Output Code--------------------------------------------------------------
+
+    // Transferring the data reference to the pointers from main
+
+    scores_list_ptr = scores_list;
+
+    freeaddrinfo(servinfo);
+}
+
 int main()
 {
     bootUpMsg();
@@ -263,7 +328,7 @@ int main()
         }
         user_name_A[numbytes] = '\0';
 
-        printf("The Central server received input=%s from the client using TCP over port %d\n", user_name_A, getPortNumber(sockfd_A));
+        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_A, getPortNumber(sockfd_A));
 
         child_fd_B = accept(sockfd_B, (struct sockaddr *)&client_addr_B, &addr_len);
         if (child_fd_B == -1)
@@ -278,7 +343,7 @@ int main()
         }
         user_name_B[numbytes] = '\0';
 
-        printf("The Central server received input=%s from the client using TCP over port %d\n", user_name_B, getPortNumber(sockfd_B));
+        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_B, getPortNumber(sockfd_B));
 
         // Done till this portion - Central server receiver usernames from both clients
 
@@ -288,17 +353,35 @@ int main()
 
         getTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix);
 
-        // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
-
-
         // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        for (int i = 0; i < *num_nodes; i++){
-            for(int k = 0; k < *num_nodes; k++){
-                printf("%d ",adjacency_matrix[i][k]);
+        for (int i = 0; i < *num_nodes; i++)
+        {
+            for (int k = 0; k < *num_nodes; k++)
+            {
+                printf("%d ", adjacency_matrix[i][k]);
             }
             printf("\n");
         }
         // ------------------------------------------Debug Output Code--------------------------------------------------------------
+
+        printf("The Central server received information from Backend-Server T using UDP over port %d.\n", getPortNumber(sockfd_udp));
+
+        // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
+
+        int *scores_list;
+
+        getScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list);
+
+        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        for (int k = 0; k < *num_nodes; k++)
+        {
+            printf("%d ", scores_list[k]);
+        }
+        printf("\n");
+
+        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+
+        printf("The Central server received information from Backend-Server S using UDP over port %d.\n", getPortNumber(sockfd_udp));
 
         if (send(child_fd_A, "HeyA", 4, 0) == -1)
         {

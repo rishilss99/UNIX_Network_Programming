@@ -427,6 +427,8 @@ int main()
                 exit(1);
             }
         }
+
+        printf("The ServerT finished sending the topology to Central.\n");
     }
     close(sockfd);
 }
