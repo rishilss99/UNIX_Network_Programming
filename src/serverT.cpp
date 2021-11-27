@@ -235,7 +235,7 @@ int *SetToArray(std::set<int> unique_list)
     return arr;
 }
 
-int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *nodes_list, int num_nodes)
+int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *&nodes_list, int num_nodes)
 {
     int **adj_matrix = new int *[num_nodes];
     for (int i = 0; i < num_nodes; i++)
@@ -287,14 +287,31 @@ int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *nodes_list, in
     return adj_matrix;
 }
 
-void bootUpMsg()
+int FindIdxInNodesList(int nodes_list_size, int *&nodes_list, int key)
+{
+    int low = 0;
+    int high = nodes_list_size-1;
+    int mid = 0;
+    while(low<=high){
+        mid = low + (high-mid)/2;
+        if(nodes_list[mid]==key)
+            return mid;
+        else if(nodes_list[mid]>key)
+            high = mid-1;
+        else
+            low = mid+1;
+    }
+    return mid;
+}
+
+void BootUpMsg()
 {
     printf("The ServerT is up and running using UDP on port %s\n", PORT);
 }
 
 int main()
 {
-    bootUpMsg();
+    BootUpMsg();
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -426,6 +443,22 @@ int main()
                 perror("ServerT: Central sendto adjacency matrix");
                 exit(1);
             }
+        }
+
+        int *node_A_mapping = new int(FindIdxInNodesList(nodes_list_size, nodes_list, network_topology.name_mapping[node_A]));
+
+        if ((numbytes = sendto(sockfd, node_A_mapping, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+        {
+            perror("ServerT: Central sendto node A mapping");
+            exit(1);
+        }
+
+        int *node_B_mapping = new int(FindIdxInNodesList(nodes_list_size, nodes_list, network_topology.name_mapping[node_B]));
+
+        if ((numbytes = sendto(sockfd, node_B_mapping, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+        {
+            perror("ServerT: Central sendto node A mapping");
+            exit(1);
         }
 
         printf("The ServerT finished sending the topology to Central.\n");

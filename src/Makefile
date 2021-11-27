@@ -3,18 +3,6 @@ CC = g++
 
 all: central.out serverS.out serverT.out serverP.out clientA.out clientB.out
 
-serverC: Central
-	@ ./Central
-
-serverT: ServerT
-	@ ./ServerT
-
-serverP: ServerP
-	@ ./ServerP
-
-serverS: ServerS
-	@ ./ServerS
-
 central.out: central.cpp
 	@ $(CC) -o Central central.cpp
 

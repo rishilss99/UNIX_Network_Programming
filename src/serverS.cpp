@@ -17,6 +17,7 @@
 #include <fstream>
 #include <set>
 #include <vector>
+#include <cstring>
 
 #define PORT "22499"
 #define localhost "127.0.0.1"
@@ -24,7 +25,8 @@
 class ScoreList
 {
 public:
-    std::vector<int> score_vec; //Vector of scores sorted according to name order
+    std::vector<int> score_vec;        //Vector of scores sorted according to name order
+    std::vector<std::string> name_vec; //Vector of names sorted according to name order
     const char *file_path;
     ScoreList(const char *);
     void PrintList();
@@ -51,6 +53,7 @@ ScoreList::ScoreList(const char *scorepath = "scores.txt") : file_path(scorepath
 
     for (std::map<std::string, int>::iterator itr = temp_sorted_names.begin(); itr != temp_sorted_names.end(); itr++)
     {
+        name_vec.push_back(itr->first);
         score_vec.push_back(itr->second);
     }
     file.close();
@@ -66,7 +69,17 @@ int *MatchingScores(std::vector<int> &scores_vec, int *&nodes_list, int num_node
     return scores_list;
 }
 
-void bootUpMsg()
+std::vector<std::string> MatchingNames(std::vector<std::string> &names_vec, int *&nodes_list, int num_nodes)
+{
+    std::vector<std::string> names_list;
+    for(int i = 0; i<num_nodes; i++)
+    {
+        names_list.push_back(names_vec[nodes_list[i]]);
+    }
+    return names_list;
+}
+
+void BootUpMsg()
 {
     printf("The ServerS is up and running using UDP on port %s\n", PORT);
 }
@@ -74,7 +87,7 @@ void bootUpMsg()
 int main()
 {
 
-    bootUpMsg();
+    BootUpMsg();
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -165,6 +178,19 @@ int main()
         {
             perror("ServerS: Central sendto scores list");
             exit(1);
+        }
+
+        // Added later on as realized that the names of the intermediate as well as the input nodes also have to be printed out
+
+        std::vector<std::string> names_list = MatchingNames(score_mapping.name_vec, nodes_list, nodes_list_size);
+        for (int i = 0; i < nodes_list_size; i++)
+        {
+            const char* temp = names_list[i].c_str();
+            if ((numbytes = sendto(sockfd, temp, (names_list[i].length() + 1), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+            {
+                perror("ServerT: Central sendto names list");
+                exit(1);
+            }
         }
 
         printf("The ServerS finished sending the scores to Central.\n");

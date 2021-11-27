@@ -13,17 +13,23 @@
 #define localhost "127.0.0.1"
 #define CENTRAL_PORT_B "26499"  //TCP Port to connect to Central Server
 
-void bootUpMsg(){
+#include <string>
+#include <iostream>
+
+#define MAX_BUF_LEN 30000
+
+void BootUpMsg(){
     printf("The client is up and running.\n");
 }
 
 int main(int argc, char *argv[]){
-    bootUpMsg();
+    BootUpMsg();
 
     struct addrinfo hints;
     struct addrinfo *res;
     int sockfd;
     int status;
+    int numbytes;
 
     // first, load up address structs with getaddrinfo():
 
@@ -63,7 +69,7 @@ int main(int argc, char *argv[]){
     freeaddrinfo(res); // all done with this structure
 
     // Established TCP connection, send user A name to Central server
-    if (send(sockfd, argv[1], strlen(argv[1]), 0) == -1){
+    if ((numbytes = send(sockfd, argv[1], strlen(argv[1]), 0)) == -1){
         perror("Client B: send");
         exit(1);
     }
@@ -71,15 +77,45 @@ int main(int argc, char *argv[]){
         printf("The client sent %s to the Central server.\n",argv[1]);
 
     // Upto this point client is setup and it has sent the username to the central server - Phase 1A
-    int numbytes;
-    char buf[20];
-    if ((numbytes = recv(sockfd, buf, 19, 0)) == -1)
+    
+    std::string clientB_output;
+    int *string_length = new int(0);
+
+    if ((numbytes = recv(sockfd, string_length, sizeof(int), 0)) == -1)
     {
-        perror("Client B: recv");
+        perror("ClientA: recv string length");
         exit(1);
     }
-    buf[numbytes] = '\0';
-    printf("Client B: received '%s'\n", buf);
+
+    int string_size = *string_length;
+
+    if (string_size < MAX_BUF_LEN)
+    {
+        char clientB_str[MAX_BUF_LEN];
+        if ((numbytes = recv(sockfd, clientB_str, sizeof clientB_str, 0)) == -1)
+        {
+            perror("ClientA: recv clientA str");
+            exit(1);
+        }
+        clientB_output.append(clientB_str);
+    }
+    else
+    {
+        char clientB_str[MAX_BUF_LEN + 10];
+        while (string_size > 0)
+        {
+
+            if ((numbytes = recv(sockfd, clientB_str, sizeof clientB_str, 0)) == -1)
+            {
+                perror("Central: ServerP recvfrom clientA str");
+                exit(1);
+            }
+            clientB_output.append(clientB_str);
+            string_size -= MAX_BUF_LEN;
+        }
+    }
+
+    std::cout<<clientB_output;
 
     close(sockfd);
 

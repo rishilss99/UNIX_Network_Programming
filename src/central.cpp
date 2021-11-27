@@ -11,6 +11,13 @@
 #include <sys/wait.h>
 
 // More than what is specified in project details
+#include <string>
+#include <vector>
+#include <iostream>
+#include <utility>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 #define BACKLOG 5
 #define localhost "127.0.0.1"
@@ -21,13 +28,15 @@
 #define SERVER_S_PORT "22499"
 #define SERVER_P_PORT "23499"
 
-void bootUpMsg()
+#define MAX_BUF_LEN 30000
+
+void BootUpMsg()
 {
     printf("The Central server is up and running.\n");
 }
 
 // Socket setup, bind and listen
-int setupTCPSocket(const char *port)
+int SetupTCPSocket(const char *port)
 {
     struct addrinfo hints;
     struct addrinfo *res;
@@ -81,7 +90,7 @@ int setupTCPSocket(const char *port)
     return sockfd;
 }
 
-int setupUDPSocket(const char *port)
+int SetupUDPSocket(const char *port)
 {
     struct addrinfo hints;
     struct addrinfo *res;
@@ -127,7 +136,7 @@ int setupUDPSocket(const char *port)
     return sockfd;
 }
 
-int getPortNumber(int socket_fd)
+int GetPortNumber(int socket_fd)
 {
     struct sockaddr_in sin;
     socklen_t sinlen = sizeof(sin);
@@ -135,7 +144,7 @@ int getPortNumber(int socket_fd)
     return ntohs(sin.sin_port);
 }
 
-void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int *&num_nodes_ptr, int *&nodes_list_ptr, int **&adjacency_matrix_ptr)
+void GetTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int *&num_nodes_ptr, int *&nodes_list_ptr, int **&adjacency_matrix_ptr, int *&node_A_mapping_ptr, int *&node_B_mapping_ptr)
 {
 
     struct addrinfo hints;
@@ -163,7 +172,7 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
     if ((numbytes = sendto(sockfd, user_name_A, strlen(user_name_A), 0,
                            servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Server T sendto");
+        perror("Central: ServerT sendto");
         exit(1);
     }
 
@@ -172,7 +181,7 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
     if ((numbytes = sendto(sockfd, user_name_B, strlen(user_name_B), 0,
                            servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Server T sendto");
+        perror("Central: ServerT sendto");
         exit(1);
     }
 
@@ -182,7 +191,7 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
 
     if ((numbytes = recvfrom(sockfd, num_nodes, sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Server T recvfrom num nodes");
+        perror("Central: ServerT recvfrom num nodes");
         exit(1);
     }
 
@@ -195,7 +204,7 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
 
     if ((numbytes = recvfrom(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Server T recvfrom nodes list");
+        perror("Central: ServerT recvfrom nodes list");
         exit(1);
     }
 
@@ -211,7 +220,7 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
         adjacency_matrix[i] = new int[nodes_list_size];
         if ((numbytes = recvfrom(sockfd, adjacency_matrix[i], nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
         {
-            perror("Central: Server T recvfrom adjacency matrix");
+            perror("Central: ServerT recvfrom adjacency matrix");
             exit(1);
         }
 
@@ -222,16 +231,34 @@ void getTopologyServerT(int sockfd, char user_name_A[], char user_name_B[], int 
         //------------------------------------------Debug Output Code--------------------------------------------------------------
     }
 
+    int *node_A_mapping = new int(0);
+
+    if ((numbytes = recvfrom(sockfd, node_A_mapping, sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerT recvfrom node A mapping");
+        exit(1);
+    }
+
+    int *node_B_mapping = new int(0);
+
+    if ((numbytes = recvfrom(sockfd, node_B_mapping, sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerT recvfrom node B mapping");
+        exit(1);
+    }
+
     // Transferring the data reference to the pointers from main
 
     num_nodes_ptr = num_nodes;
     nodes_list_ptr = nodes_list;
     adjacency_matrix_ptr = adjacency_matrix;
+    node_A_mapping_ptr = node_A_mapping;
+    node_B_mapping_ptr = node_B_mapping;
 
     freeaddrinfo(servinfo);
 }
 
-void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int *&scores_list_ptr)
+void GetScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int *&scores_list_ptr, std::vector<std::string> &names_list)
 {
 
     struct addrinfo hints;
@@ -260,7 +287,7 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
 
     // First Send num_nodes
 
-    if ((numbytes = sendto(sockfd, num_nodes_ptr, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    if ((numbytes = sendto(sockfd, num_nodes, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
         perror("Central: ServerS sendto num nodes");
         exit(1);
@@ -280,23 +307,38 @@ void getScoresServerS(int sockfd, int *&num_nodes_ptr, int *&nodes_list_ptr, int
 
     if ((numbytes = recvfrom(sockfd, scores_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: ServerS recvfrom nodes list");
+        perror("Central: ServerS recvfrom scores list");
         exit(1);
     }
 
     //------------------------------------------Debug Output Code--------------------------------------------------------------
     // for(int i = 0; i<nodes_list_size; i++)
-    //     printf("%d ",nodes_list[i]);
+    //     printf("%d ",scores_list[i]);
     //------------------------------------------Debug Output Code--------------------------------------------------------------
 
-    // Transferring the data reference to the pointers from main
+    // Added later on as realized that the names of the intermediate as well as the input nodes also have to be printed out
 
+    // std::vector<std::string> names_list;
+    for (int i = 0; i < nodes_list_size; i++)
+    {
+        char name[512];
+        if ((numbytes = recvfrom(sockfd, name, sizeof name, 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: ServerS recvfrom names list");
+            exit(1);
+        }
+        names_list.push_back(name);
+    }
+
+    // Transferring the data reference to the pointers from main
     scores_list_ptr = scores_list;
+    // names_list_ref = names_list;
 
     freeaddrinfo(servinfo);
 }
 
-void getCompatibilityServerP(int sockfd, int *&num_nodes_ptr, int *&scores_list_ptr, int **&adjacency_matrix_ptr)
+void GetCompatibilityServerP(int sockfd, int *&num_nodes_ptr, int *&scores_list_ptr, int **&adjacency_matrix_ptr, int *&node_A_mapping_ptr,
+                             int *&node_B_mapping_ptr, std::vector<std::string> &names_list, int *&string_size_ptr, std::string &clientA_output, std::string &clientB_output)
 {
     struct addrinfo hints;
     struct addrinfo *servinfo;
@@ -321,17 +363,19 @@ void getCompatibilityServerP(int sockfd, int *&num_nodes_ptr, int *&scores_list_
     int *num_nodes = num_nodes_ptr;
     int *scores_list = scores_list_ptr;
     int **adjacency_matrix = adjacency_matrix_ptr;
+    int *node_A_mapping = node_A_mapping_ptr;
+    int *node_B_mapping = node_B_mapping_ptr;
     int nodes_list_size = *num_nodes;
 
     // First Send num_nodes
 
-    if ((numbytes = sendto(sockfd, num_nodes_ptr, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    if ((numbytes = sendto(sockfd, num_nodes, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
-        perror("Central: Central ServerP sendto num nodes");
+        perror("Central: ServerP sendto num nodes");
         exit(1);
     }
 
-    // Second Send node list
+    // Second Send scores list
 
     if ((numbytes = sendto(sockfd, scores_list, nodes_list_size * sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
     {
@@ -350,18 +394,144 @@ void getCompatibilityServerP(int sockfd, int *&num_nodes_ptr, int *&scores_list_
         }
     }
 
+    // Fourth Send node A mapping
+
+    if ((numbytes = sendto(sockfd, node_A_mapping, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerP sendto node A mapping");
+        exit(1);
+    }
+
+    // Fifth Send node B mapping
+
+    if ((numbytes = sendto(sockfd, node_B_mapping, sizeof(int), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerP sendto node B mapping");
+        exit(1);
+    }
+
+    // Sixth Send names list
+
+    for (int i = 0; i < names_list.size(); i++)
+    {
+        const char *temp = names_list[i].c_str();
+        if ((numbytes = sendto(sockfd, temp, (names_list[i].length() + 1), 0, servinfo->ai_addr, servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: ServerP sendto names list");
+            exit(1);
+        }
+    }
+
     printf("The Central server sent a processing request to Backend-Server P.\n");
+
+    int *string_length = new int(0);
+
+    if ((numbytes = recvfrom(sockfd, string_length, sizeof(int), 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+    {
+        perror("Central: ServerP recvfrom string length");
+        exit(1);
+    }
+
+    int string_size = *string_length;
+
+    // std::string clientA_output;
+    // std::string clientB_output;
+
+    if (string_size < MAX_BUF_LEN)
+    {
+        char clientA_str[MAX_BUF_LEN];
+        if ((numbytes = recvfrom(sockfd, clientA_str, sizeof clientA_str, 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: ServerP recvfrom clientA str");
+            exit(1);
+        }
+        clientA_output.append(clientA_str);
+
+        char clientB_str[MAX_BUF_LEN];
+        if ((numbytes = recvfrom(sockfd, clientB_str, sizeof clientB_str, 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+        {
+            perror("Central: ServerP recvfrom clientB str");
+            exit(1);
+        }
+        clientB_output.append(clientB_str);
+    }
+    else
+    {
+        char clientA_str[MAX_BUF_LEN + 10];
+        char clientB_str[MAX_BUF_LEN + 10];
+        while (string_size > 0)
+        {
+
+            if ((numbytes = recvfrom(sockfd, clientA_str, sizeof clientA_str, 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+            {
+                perror("Central: ServerP recvfrom clientA str");
+                exit(1);
+            }
+            clientA_output.append(clientA_str);
+
+            if ((numbytes = recvfrom(sockfd, clientB_str, sizeof clientB_str, 0, servinfo->ai_addr, &servinfo->ai_addrlen)) == -1)
+            {
+                perror("Central: ServerP recvfrom clientB str");
+                exit(1);
+            }
+            clientB_output.append(clientB_str);
+            string_size -= MAX_BUF_LEN;
+        }
+    }
+
+    string_size_ptr = string_length;
 
     freeaddrinfo(servinfo);
 }
 
+void SendCompatibilityClient(int sockfd, std::string &client_output)
+{
+    int numbytes;
+    int string_size = client_output.length();
+    int *string_length = new int(string_size);
+
+    if ((numbytes = send(sockfd, string_length, sizeof(int), 0)) == -1)
+    {
+        perror("Central: Client send string length");
+        exit(1);
+    }
+
+    if (string_size < MAX_BUF_LEN)
+    {
+        const char *client_str = client_output.c_str();
+        if ((numbytes = send(sockfd, client_str, string_size + 1, 0)) == -1)
+        {
+            perror("Central: Client send clientA str");
+            exit(1);
+        }
+    }
+    else
+    {
+        int i = 0;
+        while (string_size > 0)
+        {
+            std::string client_substr = client_output.substr(i * MAX_BUF_LEN, MAX_BUF_LEN);
+
+            const char *client_str = client_substr.c_str();
+            if ((numbytes = send(sockfd, client_str, string_size + 1, 0)) == -1)
+            {
+                perror("Central: Client recvfrom clientA str");
+                exit(1);
+            }
+
+            i++;
+            string_size -= MAX_BUF_LEN;
+        }
+    }
+}
+
 int main()
 {
-    bootUpMsg();
+    BootUpMsg();
 
-    int sockfd_A = setupTCPSocket(TCP_PORT_A);
-    int sockfd_B = setupTCPSocket(TCP_PORT_B);
-    int sockfd_udp = setupUDPSocket(UDP_PORT);
+    int sockfd_A = SetupTCPSocket(TCP_PORT_A);
+    int sockfd_B = SetupTCPSocket(TCP_PORT_B);
+    int sockfd_udp = SetupUDPSocket(UDP_PORT);
 
     struct sockaddr_in client_addr_A, client_addr_B;
     socklen_t addr_len = sizeof(client_addr_A);
@@ -387,7 +557,7 @@ int main()
         }
         user_name_A[numbytes] = '\0';
 
-        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_A, getPortNumber(sockfd_A));
+        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_A, GetPortNumber(sockfd_A));
 
         child_fd_B = accept(sockfd_B, (struct sockaddr *)&client_addr_B, &addr_len);
         if (child_fd_B == -1)
@@ -402,61 +572,77 @@ int main()
         }
         user_name_B[numbytes] = '\0';
 
-        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_B, getPortNumber(sockfd_B));
+        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_B, GetPortNumber(sockfd_B));
 
         // Done till this portion - Central server receiver usernames from both clients
 
         int *num_nodes;
         int *nodes_list;
         int **adjacency_matrix;
+        int *user_name_A_mapping;
+        int *user_name_B_mapping;
 
-        getTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix);
+        GetTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping);
 
-        // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        for (int i = 0; i < *num_nodes; i++)
-        {
-            for (int k = 0; k < *num_nodes; k++)
-            {
-                printf("%d ", adjacency_matrix[i][k]);
-            }
-            printf("\n");
-        }
-        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        // for (int i = 0; i < *num_nodes; i++)
+        // {
+        //     for (int k = 0; k < *num_nodes; k++)
+        //     {
+        //         printf("%d ", adjacency_matrix[i][k]);
+        //     }
+        //     printf("\n");
+        // }
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
-        printf("The Central server received information from Backend-Server T using UDP over port %d.\n", getPortNumber(sockfd_udp));
+        printf("The Central server received information from Backend-Server T using UDP over port %d.\n", GetPortNumber(sockfd_udp));
 
         // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
-
+        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        // for (int i = 0; i < *num_nodes; i++)
+        // {
+        //     for (int k = 0; k < *num_nodes; k++)
+        //     {
+        //         printf("%d ", adjacency_matrix[i][k]);
+        //     }
+        //     printf("\n");
+        // }
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
         int *scores_list;
+        std::vector<std::string> names_list;
 
-        getScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list);
+        GetScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list, names_list);
 
-        // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        for (int k = 0; k < *num_nodes; k++)
-        {
-            printf("%d ", scores_list[k]);
-        }
-        printf("\n");
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        // for (int k = 0; k < names_list.size(); k++)
+        //     std::cout<<names_list[k]<<"\n";
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
-        // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        printf("The Central server received information from Backend-Server S using UDP over port %d.\n", GetPortNumber(sockfd_udp));
 
-        printf("The Central server received information from Backend-Server S using UDP over port %d.\n", getPortNumber(sockfd_udp));
+        int *string_size;
+        std::string clientA_output;
+        std::string clientB_output;
 
-        getCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix);
+        GetCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping, names_list, string_size, clientA_output, clientB_output);
 
-        if (send(child_fd_A, "HeyA", 4, 0) == -1)
-        {
-            perror("Central: client A send");
-            exit(1);
-        }
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+        // std::cout<<clientA_output<<clientB_output;
+        // std::cout<<*string_size<<" "<<clientA_output.length()<<" "<<clientB_output.length()<<"\n";
+
+        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+
+        printf("The Central server received the results from backend server P.\n");
+
+        SendCompatibilityClient(child_fd_A, clientA_output);
+
+        printf("The Central server sent the results to client A.\n");
+
+        SendCompatibilityClient(child_fd_B, clientB_output);
+
+        printf("The Central server sent the results to client B.\n");
 
         close(child_fd_A);
-
-        if (send(child_fd_B, "HeyB", 4, 0) == -1)
-        {
-            perror("Central: client A send");
-            exit(1);
-        }
 
         close(child_fd_B);
     }
