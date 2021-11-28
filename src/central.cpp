@@ -568,98 +568,197 @@ int main()
             perror("Central: client B accept");
             exit(1);
         }
-        if ((numbytes = recv(child_fd_B, user_name_B, sizeof user_name_B, 0)) == -1)
+
+        int *num_usernames = new int(0);
+
+        if ((numbytes = recv(child_fd_B, num_usernames, sizeof(int), 0)) == -1)
         {
             perror("Central: client B recv");
             exit(1);
         }
-        user_name_B[numbytes] = '\0';
 
-        printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_B, GetPortNumber(sockfd_B));
+        if (*num_usernames == 1)
+        {
+            if ((numbytes = recv(child_fd_B, user_name_B, sizeof user_name_B, 0)) == -1)
+            {
+                perror("Central: client B recv");
+                exit(1);
+            }
+            user_name_B[numbytes] = '\0';
 
-        // Done till this portion - Central server receiver usernames from both clients
+            printf("The Central server received input=%s from the client using TCP over port %d.\n", user_name_B, GetPortNumber(sockfd_B));
 
-        int *num_nodes;
-        int *nodes_list;
-        int **adjacency_matrix;
-        int *user_name_A_mapping;
-        int *user_name_B_mapping;
+            // Done till this portion - Central server receiver usernames from both clients
 
-        GetTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping);
+            int *num_nodes;
+            int *nodes_list;
+            int **adjacency_matrix;
+            int *user_name_A_mapping;
+            int *user_name_B_mapping;
 
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        // for (int i = 0; i < *num_nodes; i++)
-        // {
-        //     for (int k = 0; k < *num_nodes; k++)
-        //     {
-        //         printf("%d ", adjacency_matrix[i][k]);
-        //     }
-        //     printf("\n");
-        // }
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            GetTopologyServerT(sockfd_udp, user_name_A, user_name_B, num_nodes, nodes_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping);
 
-        printf("The Central server received information from Backend-Server T using UDP over port %d.\n", GetPortNumber(sockfd_udp));
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            // for (int i = 0; i < *num_nodes; i++)
+            // {
+            //     for (int k = 0; k < *num_nodes; k++)
+            //     {
+            //         printf("%d ", adjacency_matrix[i][k]);
+            //     }
+            //     printf("\n");
+            // }
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
-        // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
-        // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        // for (int i = 0; i < *num_nodes; i++)
-        // {
-        //     for (int k = 0; k < *num_nodes; k++)
-        //     {
-        //         printf("%d ", adjacency_matrix[i][k]);
-        //     }
-        //     printf("\n");
-        // }
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        int *scores_list;
-        std::vector<std::string> names_list;
+            printf("The Central server received information from Backend-Server T using UDP over port %d.\n", GetPortNumber(sockfd_udp));
 
-        GetScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list, names_list);
+            // IMPORTANT: Handle the corner case when the none of the given usernames exist in edgelist.txt as this will give a NULL matrix
+            // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            // for (int i = 0; i < *num_nodes; i++)
+            // {
+            //     for (int k = 0; k < *num_nodes; k++)
+            //     {
+            //         printf("%d ", adjacency_matrix[i][k]);
+            //     }
+            //     printf("\n");
+            // }
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            int *scores_list;
+            std::vector<std::string> names_list;
 
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        // for (int k = 0; k < names_list.size(); k++)
-        //     std::cout<<names_list[k]<<"\n";
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            GetScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list, names_list);
 
-        printf("The Central server received information from Backend-Server S using UDP over port %d.\n", GetPortNumber(sockfd_udp));
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            // for (int k = 0; k < names_list.size(); k++)
+            //     std::cout<<names_list[k]<<"\n";
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
-        int *string_size;
-        std::string clientA_output;
-        std::string clientB_output;
+            printf("The Central server received information from Backend-Server S using UDP over port %d.\n", GetPortNumber(sockfd_udp));
 
-        GetCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping, names_list, string_size, clientA_output, clientB_output);
+            int *string_size;
+            std::string clientA_output;
+            std::string clientB_output;
 
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-        // std::cout<<clientA_output<<clientB_output;
-        // std::cout<<*string_size<<" "<<clientA_output.length()<<" "<<clientB_output.length()<<"\n";
+            GetCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping, names_list, string_size, clientA_output, clientB_output);
 
-        // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+            // std::cout<<clientA_output<<clientB_output;
+            // std::cout<<*string_size<<" "<<clientA_output.length()<<" "<<clientB_output.length()<<"\n";
 
-        printf("The Central server received the results from backend server P.\n");
+            // // ------------------------------------------Debug Output Code--------------------------------------------------------------
 
-        SendCompatibilityClient(child_fd_A, clientA_output);
+            printf("The Central server received the results from backend server P.\n");
 
-        printf("The Central server sent the results to client A.\n");
+            SendCompatibilityClient(child_fd_A, clientA_output);
 
-        SendCompatibilityClient(child_fd_B, clientB_output);
+            printf("The Central server sent the results to client A.\n");
 
-        printf("The Central server sent the results to client B.\n");
+            SendCompatibilityClient(child_fd_B, clientB_output);
 
-        close(child_fd_A);
+            printf("The Central server sent the results to client B.\n");
 
-        close(child_fd_B);
+            close(child_fd_A);
+
+            close(child_fd_B);
+
+            // Freeing allocated dynamic memory
+            for (int i = 0; i < *num_nodes; i++)
+            {
+                delete adjacency_matrix[i];
+            }
+            delete[] adjacency_matrix;
+            delete num_nodes;
+            delete[] nodes_list;
+            delete user_name_A_mapping;
+            delete user_name_B_mapping;
+            delete[] scores_list;
+            delete string_size;
+        }
+        else
+        {
+            std::vector<std::string> user_names_B;
+            if ((numbytes = recv(child_fd_B, user_name_B, sizeof user_name_B, 0)) == -1)
+            {
+                perror("Central: client B recv");
+                exit(1);
+            }
+            user_name_B[numbytes] = '\0';
+            user_names_B.push_back(user_name_B);
+
+            if ((numbytes = recv(child_fd_B, user_name_B, sizeof user_name_B, 0)) == -1)
+            {
+                perror("Central: client B recv");
+                exit(1);
+            }
+            user_name_B[numbytes] = '\0';
+            user_names_B.push_back(user_name_B);
+
+            printf("The Central server received inputs=%s and %s from the client using TCP over port %d.\n", const_cast<char*>(user_names_B[0].c_str()), const_cast<char*>(user_names_B[2].c_str()), GetPortNumber(sockfd_B));
+
+            std::string clientA_output;
+            std::string clientB_output;
+
+            for (int i = 0; i < 2; i++)
+            {
+               
+                int *num_nodes;
+                int *nodes_list;
+                int **adjacency_matrix;
+                int *user_name_A_mapping;
+                int *user_name_B_mapping;
+
+                GetTopologyServerT(sockfd_udp, user_name_A, const_cast<char*>(user_names_B[i].c_str()), num_nodes, nodes_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping);
+
+                
+                printf("The Central server received information from Backend-Server T using UDP over port %d.\n", GetPortNumber(sockfd_udp));
+                
+                int *scores_list;
+                std::vector<std::string> names_list;
+
+                GetScoresServerS(sockfd_udp, num_nodes, nodes_list, scores_list, names_list);
+
+                
+                printf("The Central server received information from Backend-Server S using UDP over port %d.\n", GetPortNumber(sockfd_udp));
+
+                int *string_size;
+                std::string temp_clientA_output;
+                std::string temp_clientB_output;
+
+                GetCompatibilityServerP(sockfd_udp, num_nodes, scores_list, adjacency_matrix, user_name_A_mapping, user_name_B_mapping, names_list, string_size, temp_clientA_output, temp_clientB_output);
+
+                
+                printf("The Central server received the results from backend server P.\n");
+
+                clientA_output.append(temp_clientA_output);
+                clientB_output.append(temp_clientB_output);
+
+                // Freeing allocated dynamic memory
+                for (int i = 0; i < *num_nodes; i++)
+                {
+                    delete adjacency_matrix[i];
+                }
+                delete[] adjacency_matrix;
+                delete num_nodes;
+                delete[] nodes_list;
+                delete user_name_A_mapping;
+                delete user_name_B_mapping;
+                delete[] scores_list;
+                delete string_size;
+            }
+
+            SendCompatibilityClient(child_fd_A, clientA_output);
+
+            printf("The Central server sent the results to client A.\n");
+
+            SendCompatibilityClient(child_fd_B, clientB_output);
+
+            printf("The Central server sent the results to client B.\n");
+
+            close(child_fd_A);
+
+            close(child_fd_B);
+        }
 
         // Freeing allocated dynamic memory
-        for (int i = 0; i < *num_nodes; i++)
-        {
-            delete adjacency_matrix[i];
-        }
-        delete[] adjacency_matrix;
-        delete num_nodes;
-        delete[] nodes_list;
-        delete user_name_A_mapping;
-        delete user_name_B_mapping;
-        delete[] scores_list;
-        delete string_size;
+        delete num_usernames;
     }
 }
