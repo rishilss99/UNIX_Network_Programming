@@ -523,6 +523,9 @@ void SendCompatibilityClient(int sockfd, std::string &client_output)
             string_size -= MAX_BUF_LEN;
         }
     }
+
+    // Freeing allocated dynamic memory
+    delete string_length;
 }
 
 int main()
@@ -645,5 +648,18 @@ int main()
         close(child_fd_A);
 
         close(child_fd_B);
+
+        // Freeing allocated dynamic memory
+        for (int i = 0; i < *num_nodes; i++)
+        {
+            delete adjacency_matrix[i];
+        }
+        delete[] adjacency_matrix;
+        delete num_nodes;
+        delete[] nodes_list;
+        delete user_name_A_mapping;
+        delete user_name_B_mapping;
+        delete[] scores_list;
+        delete string_size;
     }
 }

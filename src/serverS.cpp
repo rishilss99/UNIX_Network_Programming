@@ -194,6 +194,11 @@ int main()
         }
 
         printf("The ServerS finished sending the scores to Central.\n");
+
+        // Freeing allocated dynamic memory
+        delete num_nodes;
+        delete[] nodes_list;
+        delete[] scores_list;
     }
     close(sockfd);
 }

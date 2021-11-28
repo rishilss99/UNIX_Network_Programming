@@ -193,62 +193,71 @@ std::pair<std::string, std::string> FindCompatibility(int num_nodes, double **&w
         clientA_output = OutputMsg(names_list[src], names_list[target], intermediate_nodes, dist[target], false);
         clientB_output = OutputMsg(names_list[target], names_list[src], intermediate_nodes, dist[target], true);
     }
+
+    // Freeing allocated dynamic memory
+    delete[] dist;
+    delete[] sptSet;
+    delete[] parent;
+
     return std::make_pair(clientA_output, clientB_output);
 }
 
-void SendStrings(std::pair<std::string,std::string> &compatible_result, int sockfd, struct sockaddr_in cliaddr, socklen_t addr_len)
-{       
-        int numbytes;
-        int string_size = compatible_result.first.length();
-        int *string_length = new int(string_size);
+void SendStrings(std::pair<std::string, std::string> &compatible_result, int sockfd, struct sockaddr_in cliaddr, socklen_t addr_len)
+{
+    int numbytes;
+    int string_size = compatible_result.first.length();
+    int *string_length = new int(string_size);
 
-        if ((numbytes = sendto(sockfd, string_length, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+    if ((numbytes = sendto(sockfd, string_length, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
+    {
+        perror("ServerP: Central sendto string length");
+        exit(1);
+    }
+
+    if (string_size < MAX_BUF_LEN)
+    {
+        const char *clientA_str = compatible_result.first.c_str();
+        if ((numbytes = sendto(sockfd, clientA_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
         {
-            perror("ServerP: Central sendto string length");
+            perror("ServerP: Central sendto clientA str");
             exit(1);
         }
 
-        if (string_size < MAX_BUF_LEN) 
+        const char *clientB_str = compatible_result.second.c_str();
+        if ((numbytes = sendto(sockfd, clientB_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
         {
-            const char *clientA_str = compatible_result.first.c_str();
+            perror("ServerP: Central sendto clientB str");
+            exit(1);
+        }
+    }
+    else
+    {
+        int i = 0;
+        while (string_size > 0)
+        {
+            std::string clientA_substr = compatible_result.first.substr(i * MAX_BUF_LEN, MAX_BUF_LEN);
+            std::string clientB_substr = compatible_result.second.substr(i * MAX_BUF_LEN, MAX_BUF_LEN);
+
+            const char *clientA_str = clientA_substr.c_str();
             if ((numbytes = sendto(sockfd, clientA_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
             {
                 perror("ServerP: Central sendto clientA str");
                 exit(1);
             }
 
-            const char *clientB_str = compatible_result.second.c_str();
+            const char *clientB_str = clientB_substr.c_str();
             if ((numbytes = sendto(sockfd, clientB_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
             {
                 perror("ServerP: Central sendto clientB str");
                 exit(1);
             }
+            i++;
+            string_size -= MAX_BUF_LEN;
         }
-        else
-        {
-            int i = 0;
-            while (string_size > 0)
-            {
-                std::string clientA_substr = compatible_result.first.substr(i * MAX_BUF_LEN, MAX_BUF_LEN); 
-                std::string clientB_substr = compatible_result.second.substr(i * MAX_BUF_LEN, MAX_BUF_LEN); 
+    }
 
-                const char *clientA_str = clientA_substr.c_str();
-                if ((numbytes = sendto(sockfd, clientA_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
-                {
-                    perror("ServerP: Central sendto clientA str");
-                    exit(1);
-                }
-
-                const char *clientB_str = clientB_substr.c_str();
-                if ((numbytes = sendto(sockfd, clientB_str, string_size + 1, 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
-                {
-                    perror("ServerP: Central sendto clientB str");
-                    exit(1);
-                }
-                i++;
-                string_size -= MAX_BUF_LEN;
-            }
-        }
+     // Freeing allocated dynamic memory
+     delete string_length;
 }
 
 int main()
@@ -390,11 +399,26 @@ int main()
         // std::cout << compatible_result.first;
         // std::cout << compatible_result.second;
         // //------------------------------------------Debug Output Code--------------------------------------------------------------
-        
+
         SendStrings(compatible_result, sockfd, cliaddr, addr_len);
 
         printf("The ServerP finished sending the results to the Central.\n");
 
+        // Freeing allocated dynamic memory
+        for (int i = 0; i < *num_nodes; i++)
+        {
+            delete weight_adjacency_matrix[i];
+        }
+        delete[] weight_adjacency_matrix;
+        for (int i = 0; i < *num_nodes; i++)
+        {
+            delete adjacency_matrix[i];
+        }
+        delete[] adjacency_matrix;
+        delete[] scores_list;
+        delete num_nodes;
+        delete node_A_mapping;
+        delete node_B_mapping;
     }
     close(sockfd);
 }

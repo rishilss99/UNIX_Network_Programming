@@ -462,6 +462,18 @@ int main()
         }
 
         printf("The ServerT finished sending the topology to Central.\n");
+
+
+        // Freeing allocated dynamic memory
+        for (int i = 0; i < *num_nodes; i++)
+        {
+            delete adjacency_matrix[i];
+        }
+        delete[] adjacency_matrix;
+        delete num_nodes;
+        delete[] nodes_list;
+        delete node_A_mapping;
+        delete node_B_mapping;
     }
     close(sockfd);
 }
