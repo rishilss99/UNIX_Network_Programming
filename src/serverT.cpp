@@ -25,6 +25,8 @@
 #define localhost "127.0.0.1"
 #define MAXBUFLEN 512
 
+// Graph class that contains the entire network formed from the edgelist.txt file
+// Source: GeeksforGeeks
 class Graph
 {
 public:
@@ -35,28 +37,32 @@ public:
 
     Graph(int); // Constructor
 
+    // Function to add edges to the adjacency list
     void addEdge(int, int);
 
     std::vector<int> BFS(int, int, int[]);
 };
 
+// Constructor for the Graph class
 Graph::Graph(int V)
 {
     this->vertices = V;
     adj = new std::vector<int>[V + 1];
 }
 
+// Function to add edges to the adjacency list
 void Graph::addEdge(int u, int v)
 {
     adj[u].push_back(v); // Add w to v’s list.
     adj[v].push_back(u); // Add v to w’s list.
 }
 
+// Function for running Breadth First Search on an adjacency list given a node
+// Source: GeeksforGeeks
 std::vector<int> Graph::BFS(int componentNum, int src,
                             int visited[])
 {
-    // Mark all the vertices as not visited
-    // Create a queue for BFS
+    // Mark all the vertices as not visited, create a queue for BFS
     std::queue<int> queue;
 
     queue.push(src);
@@ -75,16 +81,13 @@ std::vector<int> Graph::BFS(int componentNum, int src,
 
         reachableNodes.push_back(u);
 
-        // Get all adjacent vertices of the dequeued
-        // vertex u. If a adjacent has not been visited,
-        // then mark it visited nd enqueue it
+        // Get all adjacent vertices of the dequeued vertex u. If a adjacent has not been visited, then mark it visited nd enqueue it
         for (std::vector<int>::iterator itr = adj[u].begin();
              itr != adj[u].end(); itr++)
         {
             if (!visited[*itr])
             {
-                // Assign Component Number to all the
-                // reachable nodes
+                // Assign Component Number to all the reachable nodes
                 visited[*itr] = componentNum;
                 queue.push(*itr);
             }
@@ -93,19 +96,21 @@ std::vector<int> Graph::BFS(int componentNum, int src,
     return reachableNodes;
 }
 
+// Edgelist class that contains the all the information about the network topology as well as the name to index mapping
 class EdgeList
 {
 public:
     std::map<std::string, int> name_mapping;
     Graph *social_network = NULL; //Graph pointer that is initialized once name_list is populated
-    const char *file_path;
+    const char *file_path;        // File path for edgelist.txt
     EdgeList(const char *);
-    void PrintList();
+    void PrintList(); // Disply function for debugging
     void FormSocialNetwork();
     std::vector<int> FindReachableNodes(std::string node_name); //Finds reachable nodes from a given node - Input is the name of the node/person
-    void DisplayReachableNodes(std::string node_name);
+    void DisplayReachableNodes(std::string node_name);          // Disply function for debugging
 };
 
+// Edgelist class constructor that forms the name_mapping from the edgelist.txt file
 EdgeList::EdgeList(const char *edgepath = "edgelist.txt") : file_path(edgepath)
 {
     std::ifstream file(file_path);
@@ -115,6 +120,8 @@ EdgeList::EdgeList(const char *edgepath = "edgelist.txt") : file_path(edgepath)
         perror("ServerT: Couldn't find edgelist.txt");
         exit(1);
     }
+
+    // Set of strings used to ensure that each name is only added once to edgelist and also get sorted order
     std::set<std::string> temp_sorted_names;
     if (file.is_open())
     {
@@ -124,6 +131,8 @@ EdgeList::EdgeList(const char *edgepath = "edgelist.txt") : file_path(edgepath)
             temp_sorted_names.insert(name_b);
         }
     }
+
+    // Iterate over the sorted names set and get the mapping for each name and its corresponding index
     int count = 0;
     for (std::set<std::string>::iterator itr = temp_sorted_names.begin(); itr != temp_sorted_names.end(); itr++)
     {
@@ -132,12 +141,14 @@ EdgeList::EdgeList(const char *edgepath = "edgelist.txt") : file_path(edgepath)
     file.close();
 }
 
+// Disply name mapping function used for debugging
 void EdgeList::PrintList()
 {
     for (std::map<std::string, int>::iterator itr = name_mapping.begin(); itr != name_mapping.end(); itr++)
         std::cout << itr->first << " " << itr->second << "\n";
 }
 
+// Function to form the adjacency list from edgelist.txt. We need name_mapping as we are using indices instead of actual names in the adjacency list
 void EdgeList::FormSocialNetwork()
 {
     if (name_mapping.size() == 0)
@@ -156,6 +167,7 @@ void EdgeList::FormSocialNetwork()
         }
     }
     file.close();
+
     // Sort the vector of direct edges for each node
     for (int i = 0; i < social_network->vertices; i++)
     {
@@ -163,7 +175,7 @@ void EdgeList::FormSocialNetwork()
     }
 }
 
-// Display all the Reachable Nodes from a node 'n'
+// Display all the Reachable Nodes from a node 'n'. Function used for debugging
 void EdgeList::DisplayReachableNodes(std::string node_name)
 {
     // At this point, we have all reachable nodes
@@ -179,20 +191,17 @@ void EdgeList::DisplayReachableNodes(std::string node_name)
     std::cout << "\n";
 }
 
-// Find all the reachable nodes for every element
-// in the arr
+// Function that takes a node name as input and gets a list of all reachable nodes mapped to their indices using the name_mapping
 std::vector<int> EdgeList::FindReachableNodes(std::string node_name)
 {
     // Get the number of nodes in the graph
     int V = social_network->vertices;
 
-    // Take a integer visited array and initialize
-    // all the elements with 0
+    // Take a integer visited array and initialize all the elements with 0
     int visited[V + 1];
     memset(visited, 0, sizeof(visited));
 
-    // Map to store list of reachable Nodes for a
-    // given node.
+    // Map to store list of reachable Nodes for a given node
     std::vector<int> m;
 
     // Initialize component Number with 0
@@ -209,13 +218,13 @@ std::vector<int> EdgeList::FindReachableNodes(std::string node_name)
     {
         componentNum++;
 
-        // Store the reachable Nodes corresponding to
-        // the node 'i'
+        // Store the reachable Nodes corresponding to the node 'i'
         m = social_network->BFS(componentNum, node_idx, visited);
     }
     return m;
 }
 
+// Given 2 nodes list this function merges and sorts both lists ensuring their are no duplicate values
 std::set<int> MergeNodesList(std::vector<int> listA, std::vector<int> listB)
 {
     std::set<int> merge_list;
@@ -226,6 +235,7 @@ std::set<int> MergeNodesList(std::vector<int> listA, std::vector<int> listB)
     return merge_list;
 }
 
+// Function to convert a set a dynamically allocated array
 int *SetToArray(std::set<int> unique_list)
 {
     int *arr = new int[unique_list.size()];
@@ -235,6 +245,8 @@ int *SetToArray(std::set<int> unique_list)
     return arr;
 }
 
+
+// Function that forms the adjacency matrix to be sent back to central using the adjacency list and the node list
 int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *&nodes_list, int num_nodes)
 {
     int **adj_matrix = new int *[num_nodes];
@@ -273,33 +285,25 @@ int **AdjacencyListToMatrix(std::vector<int> *adjcency_list, int *&nodes_list, i
         }
     }
 
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
-    // for (int m = 0; m < num_nodes; m++)
-    // {
-    //     for (int n = 0; n < num_nodes; n++)
-    //     {
-    //         std::cout << adj_matrix[m][n] << " ";
-    //     }
-    //     std::cout << "\n";
-    // }
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
-
     return adj_matrix;
 }
 
+// Given a node's index in the name mapping this function finds its index in the nodes list
+// Uses Binary Search as nodes list is sorted
 int FindIdxInNodesList(int nodes_list_size, int *&nodes_list, int key)
 {
     int low = 0;
-    int high = nodes_list_size-1;
+    int high = nodes_list_size - 1;
     int mid = 0;
-    while(low<=high){
-        mid = low + (high-mid)/2;
-        if(nodes_list[mid]==key)
+    while (low <= high)
+    {
+        mid = low + (high - mid) / 2;
+        if (nodes_list[mid] == key)
             return mid;
-        else if(nodes_list[mid]>key)
-            high = mid-1;
+        else if (nodes_list[mid] > key)
+            high = mid - 1;
         else
-            low = mid+1;
+            low = mid + 1;
     }
     return mid;
 }
@@ -312,6 +316,8 @@ void BootUpMsg()
 int main()
 {
     BootUpMsg();
+
+    // UDP Socket setup code from Beej’s Guide to Network Programming
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -362,22 +368,8 @@ int main()
     EdgeList network_topology;
     network_topology.FormSocialNetwork();
 
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
-
-    // for (int i = 0; i < network_topology.social_network->vertices; i++)
-    // {
-    //     std::cout << i << ":"
-    //               << " ";
-    //     for (std::vector<int>::iterator itr = network_topology.social_network->adj[i].begin(); itr != network_topology.social_network->adj[i].end(); itr++)
-    //         std::cout << *itr << " ";
-    //     std::cout << "\n";
-    // }
-    // network_topology.PrintList();
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
-
-    // network_topology.DisplayReachableNodes("King");
-
-    // Phase 2: Receive 2 node names from Central Server and Generate: 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes
+    // Phase 2: Receive 2 node names from Central Server and Generate: 
+    // 1) Sorted List of reachable nodes 2) Adjacency matrix of reachable nodes 3) Index mapping of the 2 node names
     char user_name_A[512];
     char user_name_B[512];
     struct sockaddr_in cliaddr;
@@ -385,6 +377,9 @@ int main()
     int numbytes;
     while (1)
     {
+
+        // Receive user_name_A from Central
+        
         if ((numbytes = recvfrom(sockfd, user_name_A, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
             perror("ServerT: recvfrom");
@@ -392,7 +387,8 @@ int main()
         }
         user_name_A[numbytes] = '\0';
         std::string node_A(user_name_A);
-        // printf("Server T User Name A: \"%s\"\n", user_name_A);
+
+        // Receive user_name_B from Central
 
         if ((numbytes = recvfrom(sockfd, user_name_B, MAXBUFLEN - 1, 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
@@ -401,20 +397,20 @@ int main()
         }
         user_name_B[numbytes] = '\0';
         std::string node_B(user_name_B);
-        // printf("Server T User Name B: \"%s\"\n", user_name_B);
 
         printf("The ServerT received a request from Central to get the topology.\n");
 
         // Server T has received the node names
 
-        // network_topology.DisplayReachableNodes(node_A);
-        // network_topology.DisplayReachableNodes(node_B);
+        // nodes_set is a merged list of all related vertices/nodes from both the given nodes
 
-        // nodes_set is a merged list of all related vertices/nodes
         std::set<int> nodes_set = MergeNodesList(network_topology.FindReachableNodes(node_A), network_topology.FindReachableNodes(node_B));
 
-        //num_nodes is the total number of related vertices/nodes
+        // num_nodes is the total number of related vertices/nodes
+
         int nodes_list_size = nodes_set.size();
+
+        // Send num_nodes to Central so that it knows the size of array for nodes_list and adjacency_matrix
 
         int *num_nodes = new int(nodes_list_size);
 
@@ -424,7 +420,8 @@ int main()
             exit(1);
         }
 
-        //nodes_list is the array of nodes converted from the set that is to be sent to the central server
+        // nodes_list is the array of nodes converted from the set that is to be sent to the Central server
+
         int *nodes_list = SetToArray(nodes_set);
 
         if ((numbytes = sendto(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
@@ -433,7 +430,8 @@ int main()
             exit(1);
         }
 
-        // //adjacency_matrix is the matrix of all the reachable nodes directly forwarded by the central server to server P
+        // adjacency_matrix is the matrix of all the reachable nodes directly forwarded by the central server to server P
+
         int **adjacency_matrix = AdjacencyListToMatrix(network_topology.social_network->adj, nodes_list, nodes_list_size);
 
         for (int i = 0; i < nodes_list_size; i++)
@@ -445,6 +443,8 @@ int main()
             }
         }
 
+        // node_A_mapping is the index of the given user_name_A in the final nodes_list
+
         int *node_A_mapping = new int(FindIdxInNodesList(nodes_list_size, nodes_list, network_topology.name_mapping[node_A]));
 
         if ((numbytes = sendto(sockfd, node_A_mapping, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
@@ -452,6 +452,8 @@ int main()
             perror("ServerT: Central sendto node A mapping");
             exit(1);
         }
+
+         // node_B_mapping is the index of the given user_name_B in the final nodes_list
 
         int *node_B_mapping = new int(FindIdxInNodesList(nodes_list_size, nodes_list, network_topology.name_mapping[node_B]));
 
@@ -462,7 +464,6 @@ int main()
         }
 
         printf("The ServerT finished sending the topology to Central.\n");
-
 
         // Freeing allocated dynamic memory
         for (int i = 0; i < *num_nodes; i++)

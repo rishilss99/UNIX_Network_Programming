@@ -27,6 +27,8 @@ int main(int argc, char *argv[])
 {
     BootUpMsg();
 
+    // Socket setup code from Beej’s Guide to Network Programming
+
     struct addrinfo hints;
     struct addrinfo *res;
     int sockfd;
@@ -78,10 +80,10 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // Main case when only single username provided by client B
+    // Main case when only 1 username provided by client B
     if (argc == 2)
     {
-        // Established TCP connection, send user A name to Central server
+        // Established TCP connection, send user B name to Central server
         if ((numbytes = send(sockfd, argv[1], strlen(argv[1]), 0)) == -1)
         {
             perror("Client B: send");
@@ -91,25 +93,47 @@ int main(int argc, char *argv[])
             printf("The client sent %s to the Central server.\n", argv[1]);
     }
 
-    // Optional case when two userames provided by client B
+    // Optional case when 2 userames provided by client B
     else
     {
-        // Established TCP connection, send user A name to Central server
+        // Established TCP connection, send user B name 1 to Central server
+        int *name_length = new int(strlen(argv[1]));
+        if ((numbytes = send(sockfd, name_length, sizeof(int), 0)) == -1)
+        {
+            perror("Client B: send");
+            exit(1);
+        }
+
         if ((numbytes = send(sockfd, argv[1], strlen(argv[1]), 0)) == -1)
         {
             perror("Client B: send");
             exit(1);
         }
+
+        // Established TCP connection, send user B name 2 to Central server
+        *name_length = strlen(argv[2]);
+        if ((numbytes = send(sockfd, name_length, sizeof(int), 0)) == -1)
+        {
+            perror("Client B: send");
+            exit(1);
+        }
+
+        
         if ((numbytes = send(sockfd, argv[2], strlen(argv[2]), 0)) == -1)
         {
             perror("Client B: send");
             exit(1);
         }
-        else
-            printf("The client sent %s and %s to the Central server.\n", argv[1],argv[2]);
+
+        printf("The client sent %s and %s to the Central server.\n", argv[1], argv[2]);
+
+        // Freeing allocated dynamic memory
+        delete name_length;
     }
 
     // Upto this point client is setup and it has sent the username to the central server - Phase 1A
+
+    // The client is waiting to receives the entire output string from the central server
 
     std::string clientB_output;
     int *string_length = new int(0);
@@ -121,6 +145,11 @@ int main(int argc, char *argv[])
     }
 
     int string_size = *string_length;
+
+    // Once the client receives the output string length it decides whether it can receive the entire string in one go
+    // or receive broken substrings
+
+    // This is done to avoid overflowing the buffer and receiving a EMGSIZE error
 
     if (string_size < MAX_BUF_LEN)
     {
@@ -147,6 +176,8 @@ int main(int argc, char *argv[])
             string_size -= MAX_BUF_LEN;
         }
     }
+
+    // Client displays the output string
 
     std::cout << clientB_output;
 

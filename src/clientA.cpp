@@ -27,6 +27,8 @@ int main(int argc, char *argv[])
 {
     BootUpMsg();
 
+    // Socket setup code from Beej’s Guide to Network Programming
+
     struct addrinfo hints;
     struct addrinfo *res;
     int sockfd;
@@ -81,6 +83,8 @@ int main(int argc, char *argv[])
 
     // Upto this point client is setup and it has sent the username to the central server - Phase 1A
 
+    // The client is waiting to receives the entire output string from the central server
+
     std::string clientA_output;
     int *string_length = new int(0);
 
@@ -91,6 +95,11 @@ int main(int argc, char *argv[])
     }
 
     int string_size = *string_length;
+
+    // Once the client receives the output string length it decides whether it can receive the entire string in one go
+    // or receive broken substrings
+
+    // This is done to avoid overflowing the buffer and receiving a EMGSIZE error
 
     if (string_size < MAX_BUF_LEN)
     {
@@ -110,13 +119,15 @@ int main(int argc, char *argv[])
 
             if ((numbytes = recv(sockfd, clientA_str, sizeof clientA_str, 0)) == -1)
             {
-                perror("Central: ServerP recvfrom clientA str");
+                perror("ClientA: recv clientA str");
                 exit(1);
             }
             clientA_output.append(clientA_str);
             string_size -= MAX_BUF_LEN;
         }
     }
+
+    // Client displays the output string
 
     std::cout<<clientA_output;
 

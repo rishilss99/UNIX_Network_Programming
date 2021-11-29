@@ -1,0 +1,163 @@
+## Name: Rishil Sandip Shah
+
+## Student ID: 1871501499
+
+## Work Done
+
+Phase 1A: Establish connections between Clients and Central server 
+
+Phase 1B: Establish connections between Central and all other backend servers 
+
+Phase 2: Central communicates with ServerT, ServerS and ServerP to get matching gap 
+
+Phase 3: Central server sends the information to Clients for display 
+
+Phase 4: Client B provides 2 usernames for matching with Client A username 
+
+## Source Files
+
+**clientA.cpp**: Input username through command line arguments. Connect with the Central server using a TCP socket over a dynamically allocated port. Send the username to Central server over the TCP connection for finding the compatibility. Receive the display string and prints it.
+
+**clientB.cpp**: Input username/usernames through command line arguments. Connect with the Central server using a TCP socket over a dynamically allocated port. Send the username/usernames to the Central server over the TCP connection for finding the compatibility. Receive the display string and prints it. To implement the optional part, it checks the number of command line inputs and communicate with the Central server accordingly.
+
+**central.cpp**: Set up 2 TCP sockets and 1 UDP socket on statically assigned ports. First setup TCP connection with clientA and clientB and receive usernames for further processing. Send the usernames to ServerT using the UDP socket. Receive the topology information (adjacency matrix, nodes_list) and the username mappings to be forwarded to ServerS. Send the related nodes information (nodes_list) to ServerS using the UDP socket and receive the scores information (scores_list, names_list) in return. Send the topology information (adjacency matrix, nodes_list), scores information (scores_list, names_list) and the username mappings to ServerP using the UDP socket to find the compatibility. Receive the compatibility information from ServerP and communicate the output messages to the clients.
+
+**serverT.cpp**: Set up 1 UDP socket on statically assigned port. Use the class EdgeList to read the edgelist.txt file and form the name mappings and adjacency list. Includes utility functions to find the index of a given name, merge to nodes list and run Breadth First Traversal. Once Central server sends the 2 usernames over the UDP socket. serverT finds the related nodes two both the users and constructs an adjacency matrix to be forwarded to the Central server. It also returns the index of the user names in the nodes_list to the Central server for sending to serverP.
+
+**serverS.cpp**: Set up 1 UDP socket on statically assigned port. Use the class ScoreList to read the scores.txt file and form 2 vectors (names_vec and scores_vec). Vectors are sorted based on the lexicographic order of the names. Receive the nodes_list from the Central server and find the corresponding scores and names of nodes. Send the information back to the Central server.
+
+**serverP.cpp**: Set up 1 UDP socket on statically assigned port. Once all data from Central server is received start processing. Firstly, use the scores_list and adjacency matrix to form a weighted adjacency matrix to run Dijkstra's shortest path algorithm. Use the index mappings of usernames from Central server to set the source and target nodes for Dijkstra's algorithm. After the algorithm check if a path exists or not, if a path exists use the parent vector to generate a string with the intermediate nodes connecting the source and target nodes. Generate 2 output strings to be sent back to Central.
+
+## Messages Exchanged
+
+### ServerT Terminal: (Main part)
+The ServerT is up and running using UDP on port 21499
+The ServerT received a request from Central to get the topology.
+The ServerT finished sending the topology to Central.
+
+
+### ServerS Terminal: (Main part)
+The ServerS is up and running using UDP on port 22499
+The ServerS received a request from Central to get the scores.
+The ServerS finished sending the scores to Central.
+
+
+### ServerP Terminal: (Main part)
+The ServerP is up and running using UDP on port 23499
+The ServerP received the topology and score information.
+The ServerP finished sending the results to the Central.
+
+### Central Terminal: (Main part)
+The Central server is up and running.
+The Central server received input=Brooke from the client using TCP over port 25499.
+The Central server received input=Jordan from the client using TCP over port 26499.
+The Central server sent a request to Backend-Server T.
+The Central server received information from Backend-Server T using UDP over port 24499.
+The Central server sent a request to Backend-Server S.
+The Central server received information from Backend-Server S using UDP over port 24499.
+The Central server sent a processing request to Backend-Server P.
+The Central server received the results from backend server P.
+The Central server sent the results to client A.
+The Central server sent the results to client B.
+
+### ClientA Terminal: (Main part)
+The client is up and running.
+The client sent Brooke to the Central server.
+Found compatibility for Brooke and Jordan:
+Brooke --- Benjamin --- Alexis --- Jordan
+Matching gap: 0.08
+
+### ClientB Terminal: (Main part)
+The client is up and running.
+The client sent Jordan to the Central server.
+Found compatibility for Jordan and Brooke:
+Jordan --- Alexis --- Benjamin --- Brooke
+Matching gap: 0.08
+
+### ServerT Terminal: (Optional part)
+The ServerT is up and running using UDP on port 21499
+The ServerT received a request from Central to get the topology.
+The ServerT finished sending the topology to Central.
+The ServerT received a request from Central to get the topology.
+The ServerT finished sending the topology to Central.
+
+### ServerS Terminal: (Optional part)
+The ServerS is up and running using UDP on port 22499
+The ServerS received a request from Central to get the scores.
+The ServerS finished sending the scores to Central.
+The ServerS received a request from Central to get the scores.
+The ServerS finished sending the scores to Central.
+
+### ServerP Terminal: (Optional part)
+The ServerP is up and running using UDP on port 23499
+The ServerP received the topology and score information.
+The ServerP finished sending the results to the Central.
+The ServerP received the topology and score information.
+The ServerP finished sending the results to the Central.
+
+### Central Terminal: (Optional part)
+The Central server received input=Brooke from the client using TCP over port 25499.
+The Central server received inputs=Jordan and Tyler from the client using TCP over port 26499.
+The Central server sent a request to Backend-Server T.
+The Central server received information from Backend-Server T using UDP over port 24499.
+The Central server sent a request to Backend-Server S.
+The Central server received information from Backend-Server S using UDP over port 24499.
+The Central server sent a processing request to Backend-Server P.
+The Central server received the results from backend server P.
+The Central server sent a request to Backend-Server T.
+The Central server received information from Backend-Server T using UDP over port 24499.
+The Central server sent a request to Backend-Server S.
+The Central server received information from Backend-Server S using UDP over port 24499.
+The Central server sent a processing request to Backend-Server P.
+The Central server received the results from backend server P.
+The Central server sent the results to client A.
+The Central server sent the results to client B.
+
+### ClientA Terminal: (Optional part)
+The client is up and running.
+The client sent Brooke to the Central server.
+Found compatibility for Brooke and Jordan:
+Brooke --- Benjamin --- Alexis --- Jordan
+Matching gap: 0.08
+Found compatibility for Brooke and Tyler:
+Brooke --- Tyler
+Matching gap: 0.05
+
+### ClientB Terminal: (Optional part)
+The client is up and running.
+The client sent Jordan and Tyler to the Central server.
+Found compatibility for Jordan and Brooke:
+Jordan --- Alexis --- Benjamin --- Brooke
+Matching gap: 0.08
+Found compatibility for Tyler and Brooke:
+Tyler --- Brooke
+Matching gap: 0.05
+
+## Idiosyncrasy
+
+The code covers all the important aspects mentioned in the project description but does not cover the following edge cases and the output may return error/garbage value depending on the input:
+- As mentioned in the discussion, the code is based on the assumption that all nodes are connected to atleast one other node i.e., they are a part of the edgelist.txt file. The code fails when even a single node is absent in the edgelist.txt file but included in the scores.txt file. This will lead to an incorrect output compatibility value.
+- The code fails when the both inputs are same. In this case as a fail safe, serverP will notify that both inputs are same and terminate itself. But the other servers will keep running and have to be terminated along with the clients.
+- As mentioned in the discussion, the code is based on the assumption that all input values are correct that is the usernames are part of both the edgelist.txt and scores.txt files. The code will return a faulty value when an input username is not part of the either of the files.
+- The code has been extensively tested on the sample data set provided as well as the test set posted on Piazza. It runs error free and seamlessly if the above points are taken care of when entering the input usernames.
+
+## Reused Code
+
+From Beej’s Guide to Network Programming
+central.cpp -> SetupUDPSocket(const char *port)
+
+From Beej’s Guide to Network Programming
+central.cpp->SetupTCPSocket(const char *port)
+
+From GeeksforGeeks
+serverT.cpp->class Graph
+
+From GeeksforGeeks
+serverT.cpp->Graph::BFS(int componentNum, int src, int visited[])
+
+From GeeksforGeeks
+serverP.cpp->FindCompatibility(int num_nodes, double **&weighted_adjacency_matrix, std::vector<std::string> &names_list, int src, inttarget)
+
+
+
+

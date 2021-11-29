@@ -22,6 +22,8 @@
 #define PORT "22499"
 #define localhost "127.0.0.1"
 
+
+// ScoreList class that contins the vectors for names and their corresponding scores
 class ScoreList
 {
 public:
@@ -32,6 +34,7 @@ public:
     void PrintList();
 };
 
+// ScoreList constructor function used to generate the scores and names vector
 ScoreList::ScoreList(const char *scorepath = "scores.txt") : file_path(scorepath)
 {
     std::ifstream file(file_path);
@@ -42,6 +45,8 @@ ScoreList::ScoreList(const char *scorepath = "scores.txt") : file_path(scorepath
         perror("ServerS: Couldn't find scores.txt");
         exit(1);
     }
+
+    // We use a map to ensure that names are not repeated and also for sorting
     std::map<std::string, int> temp_sorted_names;
     if (file.is_open())
     {
@@ -59,6 +64,7 @@ ScoreList::ScoreList(const char *scorepath = "scores.txt") : file_path(scorepath
     file.close();
 }
 
+// Given the nodes_list this function generates a dynamic array with corresponding scores to be sent back to central
 int *MatchingScores(std::vector<int> &scores_vec, int *&nodes_list, int num_nodes)
 {
     int *scores_list = new int[num_nodes];
@@ -69,6 +75,7 @@ int *MatchingScores(std::vector<int> &scores_vec, int *&nodes_list, int num_node
     return scores_list;
 }
 
+// Given the nodes_list this function generates a vector of strings of corresponding names to be sent back to central
 std::vector<std::string> MatchingNames(std::vector<std::string> &names_vec, int *&nodes_list, int num_nodes)
 {
     std::vector<std::string> names_list;
@@ -88,6 +95,8 @@ int main()
 {
 
     BootUpMsg();
+
+    // UDP Socket setup code from Beej’s Guide to Network Programming
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -131,16 +140,9 @@ int main()
 
     freeaddrinfo(res); // all done with this structure
 
+
+    // Score list is declared containing all the name and score information from scores.txt
     ScoreList score_mapping;
-
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
-
-    // for (int i = 0; i < score_mapping.score_vec.size(); i++)
-    // {
-    //     std::cout << score_mapping.score_vec[i] << "\n";
-    // }
-
-    //------------------------------------------Debug Output Code--------------------------------------------------------------
 
     struct sockaddr_in cliaddr;
     socklen_t addr_len = sizeof(cliaddr);
@@ -148,30 +150,32 @@ int main()
     while (1)
     {
 
+        // First receive num_nodes from Central so that it knows the size of array for nodes_list
+
         int *num_nodes = new int(0);
 
         if ((numbytes = recvfrom(sockfd, num_nodes, sizeof(int), 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
-            perror("ServerS: recvfrom");
+            perror("ServerS: Central recvfrom");
             exit(1);
         }
 
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-        // printf("%d\n",*num_nodes);
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-
         int nodes_list_size = *num_nodes;
+
+        // Second receive nodes_list from Central 
+
         int *nodes_list = new int[nodes_list_size];
 
         if ((numbytes = recvfrom(sockfd, nodes_list, nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
-            perror("ServerS: recvfrom");
+            perror("ServerS: Central recvfrom");
             exit(1);
         }
 
         printf("The ServerS received a request from Central to get the scores.\n");
 
-        //nodes_list is the array of nodes converted from the set that is to be sent to the central server
+        // scores_list is the array of scores that is to be sent to central and forwarded to serverP
+
         int *scores_list = MatchingScores(score_mapping.score_vec, nodes_list, nodes_list_size);
 
         if ((numbytes = sendto(sockfd, scores_list, nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
@@ -180,9 +184,10 @@ int main()
             exit(1);
         }
 
-        // Added later on as realized that the names of the intermediate as well as the input nodes also have to be printed out
+        // names_list is the vector of names that is sent back to central and forwarded to serverP so that it can get the intermediate nodes name
 
         std::vector<std::string> names_list = MatchingNames(score_mapping.name_vec, nodes_list, nodes_list_size);
+        
         for (int i = 0; i < nodes_list_size; i++)
         {
             const char* temp = names_list[i].c_str();

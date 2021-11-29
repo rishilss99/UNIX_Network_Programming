@@ -32,6 +32,7 @@ void BootUpMsg()
     printf("The ServerP is up and running using UDP on port %s\n", PORT);
 }
 
+// Get the index of the minimum distance unvisited node used for Dijkstra's algorithm
 int MinDistanceIdx(int num_nodes, double *dist, bool *sptSet)
 {
 
@@ -47,12 +48,11 @@ int MinDistanceIdx(int num_nodes, double *dist, bool *sptSet)
             min_index = v;
         }
     }
-    // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-    // std::cout << min_index << "\n";
-    // // ------------------------------------------Debug Output Code--------------------------------------------------------------
+
     return min_index;
 }
 
+// Recursive function that takes in the parent array and names_list and generates a vector of intermediate nodes to be included in the output string
 void FindIntermediateNodes(int *parent, int target, std::vector<std::string> &names_list, std::vector<std::string> &intermediate_nodes)
 {
 
@@ -66,6 +66,7 @@ void FindIntermediateNodes(int *parent, int target, std::vector<std::string> &na
     return;
 }
 
+// Function that processes the unweighted adjacency matrix and scores list to generate the weighted adjacency matrix to run Dijkstra's algorithm
 double **GenerateWeightedAdjacencyMatrix(int num_nodes, int *&scores_list, int **&original_adjacency_matrix)
 {
     double **weight_adj_matrix = new double *[num_nodes];
@@ -87,20 +88,11 @@ double **GenerateWeightedAdjacencyMatrix(int num_nodes, int *&scores_list, int *
         }
     }
 
-    // ------------------------------------------Debug Output Code--------------------------------------------------------------
-    // for (int i = 0; i < num_nodes; i++)
-    // {
-    //     for (int k = 0; k < num_nodes; k++)
-    //     {
-    //         printf("%.2f ", weight_adj_matrix[i][k]);
-    //     }
-    //     printf("\n");
-    // }
-    // ------------------------------------------Debug Output Code--------------------------------------------------------------
-
     return weight_adj_matrix;
 }
 
+
+// Function that takes a src, target, calculated compatibility score and intermediate nodes vector to generate the output string to be sent to the client
 std::string OutputMsg(std::string src, std::string target, std::vector<std::string> &intermediate_nodes, double score, bool reverse)
 {
     std::string result = "Found compatibility for " + src + " and " + target + ":\n";
@@ -118,6 +110,7 @@ std::string OutputMsg(std::string src, std::string target, std::vector<std::stri
 }
 
 // Function that implements Dijkstra's single source shortest path algorithm for a graph represented using adjacency matrix representation
+// Source: GeeksforGeeks
 std::pair<std::string, std::string> FindCompatibility(int num_nodes, double **&weighted_adjacency_matrix, std::vector<std::string> &names_list, int src, int target)
 {
     if (src == target)
@@ -146,7 +139,7 @@ std::pair<std::string, std::string> FindCompatibility(int num_nodes, double **&w
     dist[src] = 0;
     int u = src;
 
-    // Find shortest path for all vertices
+    // Find shortest path for all vertices, terminates when there is no possible route or connection instead of going through all vertices
     while (u >= 0)
     {
 
@@ -167,24 +160,18 @@ std::pair<std::string, std::string> FindCompatibility(int num_nodes, double **&w
         u = MinDistanceIdx(num_nodes, dist, sptSet);
     }
 
-    // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-    // // Print the constructed distance array
-    // for (int i = 0; i < num_nodes; i++)
-    // {
-    //     std::cout << i << " " << dist[i] << " " << sptSet[i] << " " << parent[i] << "\n";
-    // }
-    // // ------------------------------------------Debug Output Code--------------------------------------------------------------
-
     //------------------------------------------------End of Dijkstra---------------------------------------------------------------
 
     std::string clientA_output;
     std::string clientB_output;
-
+    
+    // If the distance between src and target is infinity after the algorithm runs we generate the no compatibility string
     if (dist[target] == MAX_VAL)
     {
         clientA_output = "Found no compatibility for " + names_list[src] + " and " + names_list[target] + ".\n";
         clientB_output = "Found no compatibility for " + names_list[target] + " and " + names_list[src] + ".\n";
     }
+    // Otherwise we generate the output string with intermediate nodes and compatibility score for display
     else
     {
         std::vector<std::string> intermediate_nodes;
@@ -202,10 +189,18 @@ std::pair<std::string, std::string> FindCompatibility(int num_nodes, double **&w
     return std::make_pair(clientA_output, clientB_output);
 }
 
+
+// Function to send the output strings back to central to be directly forwarded to the clients for display
 void SendStrings(std::pair<std::string, std::string> &compatible_result, int sockfd, struct sockaddr_in cliaddr, socklen_t addr_len)
 {
     int numbytes;
     int string_size = compatible_result.first.length();
+
+
+    // Based on the string length it decides whether it can send the entire string in one go or send broken substrings
+
+    // This is done to avoid overflowing the buffer and receiving a EMGSIZE error
+
     int *string_length = new int(string_size);
 
     if ((numbytes = sendto(sockfd, string_length, sizeof(int), 0, (struct sockaddr *)&cliaddr, addr_len)) == -1)
@@ -256,14 +251,16 @@ void SendStrings(std::pair<std::string, std::string> &compatible_result, int soc
         }
     }
 
-     // Freeing allocated dynamic memory
-     delete string_length;
+    // Freeing allocated dynamic memory
+    delete string_length;
 }
 
 int main()
 {
 
     BootUpMsg();
+
+    // UDP Socket setup code from Beej’s Guide to Network Programming
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -313,8 +310,10 @@ int main()
 
     while (1)
     {
-
+        
         int *num_nodes = new int(0);
+
+        // First receive num_nodes from Central so that it knows the size of array for scores_list and adjacency_matrix
 
         if ((numbytes = recvfrom(sockfd, num_nodes, sizeof(int), 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
@@ -322,13 +321,11 @@ int main()
             exit(1);
         }
 
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-        // printf("%d\n",*num_nodes);
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-
         int nodes_list_size = *num_nodes;
 
         int *scores_list = new int[nodes_list_size];
+
+        // Second receive the scores_list from Central
 
         if ((numbytes = recvfrom(sockfd, scores_list, nodes_list_size * sizeof(int), 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
         {
@@ -336,12 +333,9 @@ int main()
             exit(1);
         }
 
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-        // for(int i = 0; i<nodes_list_size; i++)
-        //     printf("%d ",nodes_list[i]);
-        //------------------------------------------Debug Output Code--------------------------------------------------------------
-
         int **adjacency_matrix = new int *[nodes_list_size];
+
+        // Third receive the adjacency matrix from Central
 
         for (int i = 0; i < nodes_list_size; i++)
         {
@@ -352,12 +346,9 @@ int main()
                 exit(1);
             }
 
-            //------------------------------------------Debug Output Code--------------------------------------------------------------
-            // for (int k = 0; k < nodes_list_size; k++)
-            //     printf("%d ", adj_matrix[i][k]);
-            // printf("\n");
-            //------------------------------------------Debug Output Code--------------------------------------------------------------
         }
+
+        // Fourth receive the node_A_mapping from Central for the index of the src node
 
         int *node_A_mapping = new int(0);
 
@@ -367,6 +358,8 @@ int main()
             exit(1);
         }
 
+        // Fifth receive the node_B_mapping from Central for the index of the target node
+        
         int *node_B_mapping = new int(0);
 
         if ((numbytes = recvfrom(sockfd, node_B_mapping, sizeof(int), 0, (struct sockaddr *)&cliaddr, &addr_len)) == -1)
@@ -374,6 +367,8 @@ int main()
             perror("ServerP: Central recvfrom node B mapping");
             exit(1);
         }
+
+         // Sixth receive the names_list from Central so that the intermediate_nodes names can be generated after Dijkstra is finished running
 
         std::vector<std::string> names_list;
         for (int i = 0; i < nodes_list_size; i++)
@@ -390,15 +385,15 @@ int main()
 
         printf("The ServerP received the topology and score information.\n");
 
+        // Function that processes the unweighted adjacency matrix and scores list to generate the weighted adjacency matrix to run Dijkstra's algorithm
+
         double **weight_adjacency_matrix = GenerateWeightedAdjacencyMatrix(nodes_list_size, scores_list, adjacency_matrix);
 
         // Returns a pair of strings where the first string is the output message for client A and the second string is the output message for client B
+
         std::pair<std::string, std::string> compatible_result = FindCompatibility(nodes_list_size, weight_adjacency_matrix, names_list, *node_A_mapping, *node_B_mapping);
 
-        // //------------------------------------------Debug Output Code--------------------------------------------------------------
-        // std::cout << compatible_result.first;
-        // std::cout << compatible_result.second;
-        // //------------------------------------------Debug Output Code--------------------------------------------------------------
+        // Send the strings to Central to be directly be forwarded to the clients for disply
 
         SendStrings(compatible_result, sockfd, cliaddr, addr_len);
 
