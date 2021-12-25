@@ -14,9 +14,13 @@ In this project, you will implement a model of a social matching service where t
 <img src="images/Network_Image.png" width="600" height="400"/>
 </p>
 
+<p align="center">
+<img src="images/Graph.png" width="600" height="400"/>
+</p>
+
 ## Work Done
 
-Phase 1A: Establish connections between Clients and Central server 
+Phase 1A: Establish connections between Clients and Central server
 
 Phase 1B: Establish connections between Central and all other backend servers 
 
@@ -42,24 +46,24 @@ Phase 4: Client B provides 2 usernames for matching with Client A username
 
 ## Messages Exchanged
 
-### ServerT Terminal: (Main part)
+### ServerT Terminal:
 The ServerT is up and running using UDP on port 21499
 The ServerT received a request from Central to get the topology.
 The ServerT finished sending the topology to Central.
 
 
-### ServerS Terminal: (Main part)
+### ServerS Terminal:
 The ServerS is up and running using UDP on port 22499
 The ServerS received a request from Central to get the scores.
 The ServerS finished sending the scores to Central.
 
 
-### ServerP Terminal: (Main part)
+### ServerP Terminal:
 The ServerP is up and running using UDP on port 23499
 The ServerP received the topology and score information.
 The ServerP finished sending the results to the Central.
 
-### Central Terminal: (Main part)
+### Central Terminal:
 The Central server is up and running.
 The Central server received input=Brooke from the client using TCP over port 25499.
 The Central server received input=Jordan from the client using TCP over port 26499.
@@ -72,78 +76,19 @@ The Central server received the results from backend server P.
 The Central server sent the results to client A.
 The Central server sent the results to client B.
 
-### ClientA Terminal: (Main part)
+### ClientA Terminal:
 The client is up and running.
 The client sent Brooke to the Central server.
 Found compatibility for Brooke and Jordan:
 Brooke --- Benjamin --- Alexis --- Jordan
 Matching gap: 0.08
 
-### ClientB Terminal: (Main part)
+### ClientB Terminal:
 The client is up and running.
 The client sent Jordan to the Central server.
 Found compatibility for Jordan and Brooke:
 Jordan --- Alexis --- Benjamin --- Brooke
 Matching gap: 0.08
-
-### ServerT Terminal: (Optional part)
-The ServerT is up and running using UDP on port 21499
-The ServerT received a request from Central to get the topology.
-The ServerT finished sending the topology to Central.
-The ServerT received a request from Central to get the topology.
-The ServerT finished sending the topology to Central.
-
-### ServerS Terminal: (Optional part)
-The ServerS is up and running using UDP on port 22499
-The ServerS received a request from Central to get the scores.
-The ServerS finished sending the scores to Central.
-The ServerS received a request from Central to get the scores.
-The ServerS finished sending the scores to Central.
-
-### ServerP Terminal: (Optional part)
-The ServerP is up and running using UDP on port 23499
-The ServerP received the topology and score information.
-The ServerP finished sending the results to the Central.
-The ServerP received the topology and score information.
-The ServerP finished sending the results to the Central.
-
-### Central Terminal: (Optional part)
-The Central server received input=Brooke from the client using TCP over port 25499.
-The Central server received inputs=Jordan and Tyler from the client using TCP over port 26499.
-The Central server sent a request to Backend-Server T.
-The Central server received information from Backend-Server T using UDP over port 24499.
-The Central server sent a request to Backend-Server S.
-The Central server received information from Backend-Server S using UDP over port 24499.
-The Central server sent a processing request to Backend-Server P.
-The Central server received the results from backend server P.
-The Central server sent a request to Backend-Server T.
-The Central server received information from Backend-Server T using UDP over port 24499.
-The Central server sent a request to Backend-Server S.
-The Central server received information from Backend-Server S using UDP over port 24499.
-The Central server sent a processing request to Backend-Server P.
-The Central server received the results from backend server P.
-The Central server sent the results to client A.
-The Central server sent the results to client B.
-
-### ClientA Terminal: (Optional part)
-The client is up and running.
-The client sent Brooke to the Central server.
-Found compatibility for Brooke and Jordan:
-Brooke --- Benjamin --- Alexis --- Jordan
-Matching gap: 0.08
-Found compatibility for Brooke and Tyler:
-Brooke --- Tyler
-Matching gap: 0.05
-
-### ClientB Terminal: (Optional part)
-The client is up and running.
-The client sent Jordan and Tyler to the Central server.
-Found compatibility for Jordan and Brooke:
-Jordan --- Alexis --- Benjamin --- Brooke
-Matching gap: 0.08
-Found compatibility for Tyler and Brooke:
-Tyler --- Brooke
-Matching gap: 0.05
 
 ## Idiosyncrasy
 
