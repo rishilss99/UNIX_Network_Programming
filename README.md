@@ -15,7 +15,7 @@ In this project, you will implement a model of a social matching service where t
 </p>
 
 <p align="center">
-<img src="images/Graph.png" width="800" height="400"/>
+<img src="images/Graph.png" width="700" height="400"/>
 </p>
 
 ## Work Done
@@ -30,6 +30,26 @@ Phase 3: Central server sends the information to Clients for display
 
 Phase 4: Client B provides 2 usernames for matching with Client A username 
 
+## Messages Exchanged
+
+### ServerT Terminal:
+<img src="images/ServerT.png"/>  
+
+### ServerS Terminal:
+<img src="images/ServerS.png"/>  
+
+### ServerP Terminal:
+<img src="images/ServerP.png"/>  
+
+### Central Terminal:
+<img src="images/Central.png"/>  
+
+### ClientA Terminal:
+<img src="images/ClientA.png"/>  
+
+### ClientB Terminal:
+<img src="images/ClientB.png"/>  
+
 ## Source Files
 
 **clientA.cpp**: Input username through command line arguments. Connect with the Central server using a TCP socket over a dynamically allocated port. Send the username to Central server over the TCP connection for finding the compatibility. Receive the display string and prints it.
@@ -43,52 +63,6 @@ Phase 4: Client B provides 2 usernames for matching with Client A username
 **serverS.cpp**: Set up 1 UDP socket on statically assigned port. Use the class ScoreList to read the scores.txt file and form 2 vectors (names_vec and scores_vec). Vectors are sorted based on the lexicographic order of the names. Receive the nodes_list from the Central server and find the corresponding scores and names of nodes. Send the information back to the Central server.
 
 **serverP.cpp**: Set up 1 UDP socket on statically assigned port. Once all data from Central server is received start processing. Firstly, use the scores_list and adjacency matrix to form a weighted adjacency matrix to run Dijkstra's shortest path algorithm. Use the index mappings of usernames from Central server to set the source and target nodes for Dijkstra's algorithm. After the algorithm check if a path exists or not, if a path exists use the parent vector to generate a string with the intermediate nodes connecting the source and target nodes. Generate 2 output strings to be sent back to Central.
-
-## Messages Exchanged
-
-### ServerT Terminal:
-The ServerT is up and running using UDP on port 21499  
-The ServerT received a request from Central to get the topology.  
-The ServerT finished sending the topology to Central.
-
-
-### ServerS Terminal:
-The ServerS is up and running using UDP on port 22499  
-The ServerS received a request from Central to get the scores.  
-The ServerS finished sending the scores to Central.
-
-
-### ServerP Terminal:
-The ServerP is up and running using UDP on port 23499  
-The ServerP received the topology and score information.  
-The ServerP finished sending the results to the Central.
-
-### Central Terminal:
-The Central server is up and running.  
-The Central server received input=Brooke from the client using TCP over port 25499.  
-The Central server received input=Jordan from the client using TCP over port 26499.  
-The Central server sent a request to Backend-Server T.  
-The Central server received information from Backend-Server T using UDP over port 24499.  
-The Central server sent a request to Backend-Server S.  
-The Central server received information from Backend-Server S using UDP over port 24499.  
-The Central server sent a processing request to Backend-Server P.  
-The Central server received the results from backend server P.  
-The Central server sent the results to client A.  
-The Central server sent the results to client B.
-
-### ClientA Terminal:
-The client is up and running.  
-The client sent Brooke to the Central server.  
-Found compatibility for Brooke and Jordan:  
-Brooke --- Benjamin --- Alexis --- Jordan  
-Matching gap: 0.08
-
-### ClientB Terminal:
-The client is up and running.  
-The client sent Jordan to the Central server.  
-Found compatibility for Jordan and Brooke:  
-Jordan --- Alexis --- Benjamin --- Brooke  
-Matching gap: 0.08
 
 ## Idiosyncrasy
 
